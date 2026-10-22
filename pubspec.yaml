@@ -10,13 +10,11 @@ dependencies:
   google_maps_flutter: ^2.9.0   # Google Maps SDK
   geolocator: ^13.0.1           # usa o FusedLocationProviderClient no Android
   dio: ^5.7.0                   # cliente HTTP
-  retrofit: ^4.4.1              # Retrofit (gera a camada de API)
   url_launcher: ^6.3.1          # abre o WhatsApp (wa.me)
+  provider: ^6.1.5+1
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  build_runner: ^2.4.13
-  retrofit_generator: ^9.1.5
   flutter_lints: ^6.0.0
 flutter:
   uses-material-design: true
