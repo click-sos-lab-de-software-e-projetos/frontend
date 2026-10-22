@@ -31,20 +31,57 @@ contatos de confiança via WhatsApp.
 ## Pré-requisitos
 
 - [Flutter SDK](https://docs.flutter.dev/get-started/install) (`flutter doctor` sem erros)
-- Android Studio (emulador) e/ou Xcode (iOS)
-- Uma chave da **Google Maps API** (Maps SDK for Android / iOS habilitados)
+- Android Studio (emulador), Xcode (iOS) **ou** Google Chrome (web)
+- Uma chave da **Google Maps API** (Maps SDK for Android / iOS e, para web, Maps JavaScript API)
 
 ## Como rodar
+
+### 1. Instalar o Flutter
+
+- **macOS (Homebrew):** `brew install --cask flutter`
+- **Windows / Linux:** siga o [guia oficial](https://docs.flutter.dev/get-started/install).
+
+Depois confira o ambiente:
+
+```bash
+flutter --version
+flutter doctor        # mostra o que falta (Android SDK, Xcode, Chrome...)
+```
+
+### 2. Baixar o projeto e as dependências
 
 ```bash
 git clone https://github.com/click-sos-lab-de-software-e-projetos/frontend.git
 cd frontend
 flutter pub get
-flutter run
 ```
 
 As pastas de plataforma (`android/`, `ios/`, `web/`, ...) já estão no repositório,
 então **não** é preciso rodar `flutter create .` nem `build_runner`.
+
+### 3. Escolher um dispositivo e executar
+
+```bash
+flutter devices                # lista emuladores, simuladores e navegadores disponíveis
+flutter run                    # roda no dispositivo padrão
+flutter run -d <id>            # roda em um dispositivo específico (ex.: emulator-5554)
+flutter run -d chrome          # roda no navegador (não precisa de Android SDK/Xcode)
+```
+
+| Plataforma | O que precisa |
+|------------|---------------|
+| Android | Android Studio com um emulador criado (ou celular com depuração USB) |
+| iOS | macOS + Xcode com um simulador (ou iPhone) |
+| Web (Chrome) | Apenas o Google Chrome instalado |
+
+Com o app rodando, use **`r`** para *hot reload*, **`R`** para *hot restart* e
+**`q`** para encerrar.
+
+> **Web:** para o mapa aparecer no navegador, carregue a API JavaScript do Google
+> Maps em `web/index.html`, dentro do `<head>`:
+> `<script src="https://maps.googleapis.com/maps/api/js?key=SUA_CHAVE"></script>`.
+> Sem isso, a aba **Mapa** mostra um erro (`Cannot read properties of undefined
+> (reading 'maps')`), mas as demais telas funcionam.
 
 ### Configuração obrigatória para o mapa e a localização
 
