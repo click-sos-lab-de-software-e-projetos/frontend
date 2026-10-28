@@ -61,7 +61,7 @@ class _OccurrenceScreenState extends State<OccurrenceScreen> {
           ]),
           sectionLabel('Ocorrido'),
           DropdownButtonFormField<String>(
-            value: type, hint: const Text('Selecionar opção...'), dropdownColor: kCard,
+            initialValue: type, hint: const Text('Selecionar opção...'), dropdownColor: kCard,
             decoration: InputDecoration(filled: true, fillColor: kCard, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none)),
             items: types.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
             onChanged: (v) => setState(() => type = v),

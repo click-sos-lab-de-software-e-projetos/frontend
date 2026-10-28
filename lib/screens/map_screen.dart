@@ -12,13 +12,20 @@ import 'occurrence_screen.dart';
 /// com círculos sobrepostos (quanto mais ocorrências, mais intenso).
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
+
   @override
   State<MapScreen> createState() => _MapScreenState();
 }
 
 class _MapScreenState extends State<MapScreen> {
+  GoogleMapController? mapController;
   LatLng center = const LatLng(-23.5505, -46.6333);
   final app = AppState.I;
+  
+
+  void _onMapCreated(GoogleMapController controller) {
+    mapController = controller;
+  }
 
   @override
   void initState() {
@@ -29,14 +36,26 @@ class _MapScreenState extends State<MapScreen> {
 
   Future<void> _load() async {
     final p = await currentPosition();
-    if (p != null) center = p;
+    if (p != null){
+      center = p;
+
+      if (mapController != null){
+        await mapController!.animateCamera(
+          CameraUpdate.newLatLngZoom(center, 14),
+        );
+      }
+    }
     try {
-      final r = await api.getOccurrences(center.latitude, center.longitude, 5000);
+      final r = await api.getOccurrences(
+        center.latitude, 
+        center.longitude, 
+        5000
+      );
       app.occurrences
         ..clear()
         ..addAll(r.map((e) => Occurrence(LatLng(e['lat'], e['lng']), e['severity'] ?? 1, e['type'] ?? '')));
     } catch (_) {
-      // Backend indisponível: dados fictícios para demonstração.
+      // Caso API falhe
       final rnd = Random(7);
       app.occurrences
         ..clear()
@@ -65,11 +84,11 @@ class _MapScreenState extends State<MapScreen> {
         body: Stack(children: [
           GoogleMap(
             initialCameraPosition: CameraPosition(target: center, zoom: 13),
+            onMapCreated: _onMapCreated,
             myLocationEnabled: true,
             myLocationButtonEnabled: false,
             zoomControlsEnabled: false,
             circles: _heat,
-            onMapCreated: (c) => c.animateCamera(CameraUpdate.newLatLng(center)),
           ),
           SafeArea(
             child: Padding(

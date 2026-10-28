@@ -48,7 +48,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: box(
                     pad: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                     child: SwitchListTile(
-                      contentPadding: EdgeInsets.zero, activeColor: kCyan,
+                      contentPadding: EdgeInsets.zero, activeThumbColor: kCyan,
                       title: Text(c.name, style: const TextStyle(fontWeight: FontWeight.w700)),
                       subtitle: const Text('Receberá WhatsApp e Localização', style: TextStyle(fontSize: 11)),
                       value: c.alertEnabled,
@@ -69,7 +69,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               box(
                 pad: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                 child: SwitchListTile(
-                  contentPadding: EdgeInsets.zero, activeColor: kCyan,
+                  contentPadding: EdgeInsets.zero, activeThumbColor: kCyan,
                   secondary: const Icon(Icons.shield_outlined, color: kRed),
                   title: const Text('Alerta Silencioso', style: TextStyle(fontWeight: FontWeight.w700)),
                   subtitle: const Text('Sem som ou luz de tela ao ativar SOS', style: TextStyle(fontSize: 11)),
