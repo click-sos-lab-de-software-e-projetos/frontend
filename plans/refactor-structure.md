@@ -88,78 +88,115 @@ Rules:
 ## 3. Steps
 
 ### Step 0 — Clean up the repo (P1, P3, P4) [Done] ✅
-> Notes: decided root occurrence types (already in `lib/`) and **adopt Retrofit**
-> (deps kept; the Retrofit `@RestApi` client from the deleted copy is in git history
-> and should back the `Http*` repositories in Step 4). Smoke test mocks the Geolocator
-> channel. ⚠️ Gate not run (Flutter not installed on the executing machine) — run it
-> before merging; `GoogleMap` platform view may need a fake in tests.
-- [ ] Decide occurrence types (root: `Agressão, Discriminação, Assédio, Outro`
+> Notes: root occurrence types kept (already in `lib/`); **plain Dio** — removed
+> `retrofit`, `retrofit_generator`, `build_runner`. Smoke test mocks the Geolocator
+> channel and advances past Dio's 10s timeout. `flutter test` green (needed a fix in
+> `ui.dart` `box()`: transparent `Material` so `ListTile`s inside don't assert).
+> `flutter analyze` reports only the 8 deprecation infos covered by Step 2 (P12).
+- [x] Decide occurrence types (root: `Agressão, Discriminação, Assédio, Outro`
       vs. copy: `Assalto, Furto, Local mal iluminado, Assédio, Outro`) — see open questions.
-- [ ] Delete `alerta_seguro/`.
-- [ ] Remove `retrofit`, `retrofit_generator`, `build_runner` from `pubspec.yaml` (or adopt Retrofit — open question).
-- [ ] Replace `test/widget_test.dart` with a smoke test that pumps `AlertaApp` and finds the 4 nav labels.
-- [ ] ✅ `flutter pub get && flutter analyze && flutter test`
+- [x] Delete `alerta_seguro/`.
+- [x] Remove `retrofit`, `retrofit_generator`, `build_runner` from `pubspec.yaml` (or adopt Retrofit — open question).
+- [x] Replace `test/widget_test.dart` with a smoke test that pumps `AlertaApp` and finds the 4 nav labels.
+- [x] ✅ `flutter pub get && flutter analyze && flutter test`
 
-### Step 1 — Platform config (P2, P13)
-- [ ] Apply `android_snippets/AndroidManifest_trecho.xml` to `android/app/src/main/AndroidManifest.xml`;
+### Step 1 — Platform config (P2, P13) [Done] ✅
+> Notes: Maps key read from `MAPS_API_KEY` in `android/local.properties` (Gradle
+> `manifestPlaceholders`) and `ios/Flutter/Secrets.xcconfig` (→ `GMSApiKey` in Info.plist),
+> both git-ignored. Package rename skipped (optional; needs the faculty name).
+> ⚠️ Device check pending: no Android SDK/Xcode on the executing machine.
+- [x] Apply `android_snippets/AndroidManifest_trecho.xml` to `android/app/src/main/AndroidManifest.xml`;
       read the Maps key from `local.properties` / `manifestPlaceholders` (never commit it).
-- [ ] Add `NSLocationWhenInUseUsageDescription` to `ios/Runner/Info.plist`; Maps key in `AppDelegate.swift`.
-- [ ] Delete `android_snippets/`.
+- [x] Add `NSLocationWhenInUseUsageDescription` to `ios/Runner/Info.plist`; Maps key in `AppDelegate.swift`.
+- [x] Delete `android_snippets/`.
 - [ ] (Optional) rename package `com.example.alerta_seguro` → e.g. `br.edu.<faculdade>.alertaseguro`.
 - [ ] ✅ App runs on an Android emulator, map loads, location permission prompt appears.
 
-### Step 2 — Theme and shared widgets (P10, P12)
-- [ ] Move colors to `app/theme.dart` (`AppColors`) and the `ThemeData` out of `main.dart`.
-- [ ] Convert `sectionLabel/box/field/header/outlineButton` into `StatelessWidget`s in `shared/widgets/`.
-- [ ] Make the login password field use `AppTextField(obscure: true)`.
-- [ ] Replace deprecated APIs (`withValues(alpha:)`, `activeThumbColor`, `initialValue`).
-- [ ] ✅ Widget tests for each shared widget; screens look identical.
+### Step 2 — Theme and shared widgets (P10, P12) [Done] ✅
+> Notes: `ui.dart` removed (helpers replaced by `shared/widgets/`); `AppCard` keeps the
+> transparent `Material` fix. `AlertaApp`/`Shell` moved to `app/`.
+- [x] Move colors to `app/theme.dart` (`AppColors`) and the `ThemeData` out of `main.dart`.
+- [x] Convert `sectionLabel/box/field/header/outlineButton` into `StatelessWidget`s in `shared/widgets/`.
+- [x] Make the login password field use `AppTextField(obscure: true)`.
+- [x] Replace deprecated APIs (`withValues(alpha:)`, `activeThumbColor`, `initialValue`).
+- [x] ✅ Widget tests for each shared widget; screens look identical.
 
-### Step 3 — Models and config (P7, P9)
-- [ ] Create `data/models/` with immutable models + `fromJson/toJson` + `copyWith`.
-- [ ] `core/config/env.dart` with `String.fromEnvironment('API_BASE_URL')` and `bool.fromEnvironment('USE_FAKE_API', defaultValue: true)`.
-- [ ] `core/network/api_client.dart`: `LogInterceptor` only when `kDebugMode`, never log bodies.
-- [ ] ✅ Unit tests for model (de)serialization.
+### Step 3 — Models and config (P7, P9) [Done] ✅
+> Notes: models use plain `lat`/`lng` doubles (no Maps dependency in `data/`); added
+> `OccurrenceReport` (POST /occurrences) and `SosAlert` (POST /alerts). `Env` is
+> injectable (`Env(...)` / `Env.fromEnvironment()`).
+- [x] Create `data/models/` with immutable models + `fromJson/toJson` + `copyWith`.
+- [x] `core/config/env.dart` with `String.fromEnvironment('API_BASE_URL')` and `bool.fromEnvironment('USE_FAKE_API', defaultValue: true)`.
+- [x] `core/network/api_client.dart`: `LogInterceptor` only when `kDebugMode`, never log bodies.
+- [x] ✅ Unit tests for model (de)serialization.
 
-### Step 4 — Repositories (P8)
-- [ ] Abstract `AuthRepository`, `OccurrenceRepository`, `AlertRepository` + `Http*` and `Fake*` implementations.
-- [ ] Move the random heat-map generator into `FakeOccurrenceRepository`.
-- [ ] `FakeAuthRepository` accepts any non-empty email/password; `HttpAuthRepository` **throws** on failure.
-- [ ] Delete `api.dart`.
-- [ ] ✅ Unit tests for repositories (Http ones with a mocked Dio adapter).
+### Step 4 — Repositories (P8) [Done] ✅
+> Notes: `Repositories` bundles the three and is built from `Env` (`fake()` / `http(dio)`).
+> Failures surface as `RepositoryException` / `InvalidCredentialsException` (pt-BR message).
+> Until Step 6, screens reach them via a temporary global in `state.dart`. Http tests use
+> `test/helpers/stub_dio_adapter.dart` (no extra dependency).
+- [x] Abstract `AuthRepository`, `OccurrenceRepository`, `AlertRepository` + `Http*` and `Fake*` implementations.
+- [x] Move the random heat-map generator into `FakeOccurrenceRepository`.
+- [x] `FakeAuthRepository` accepts any non-empty email/password; `HttpAuthRepository` **throws** on failure.
+- [x] Delete `api.dart`.
+- [x] ✅ Unit tests for repositories (Http ones with a mocked Dio adapter).
 
-### Step 5 — Services
-- [ ] `LocationService` and `WhatsAppService` classes (injectable, mockable) replacing top-level functions.
-- [ ] ✅ Unit tests: phone normalization (`(11) 99122-3847` → `5511991223847`, numbers already starting with `55`), maps link.
+### Step 5 — Services [Done] ✅
+> Notes: `LocationService` (abstract) + `GeolocatorLocationService` / `FakeLocationService`,
+> returning a `GeoPoint` record (no Maps type in core). `WhatsAppService` takes an injectable
+> URL launcher. Normalization also handles `+`, trunk `0` and DDD 55 (RS) vs country code.
+> `services.dart` deleted; temporary globals in `state.dart` until Step 6.
+- [x] `LocationService` and `WhatsAppService` classes (injectable, mockable) replacing top-level functions.
+- [x] ✅ Unit tests: phone normalization (`(11) 99122-3847` → `5511991223847`, numbers already starting with `55`), maps link.
 
-### Step 6 — Split state into controllers (P5, P6)
-- [ ] Add `provider` dependency; build a `MultiProvider` in `main.dart`.
-- [ ] Split `AppState` into `AuthController`, `ProfileController`, `ContactsController`,
+### Step 6 — Split state into controllers (P5, P6) [Done] ✅
+- [x] Add `provider` dependency; build a `MultiProvider` in `main.dart`.
+- [x] Split `AppState` into `AuthController`, `ProfileController`, `ContactsController`,
       `SosSettingsController`, `OccurrencesController`.
-- [ ] Remove all hardcoded personal data from production code (move to fakes/seed).
-- [ ] Screens use `context.watch/read` instead of manual `addListener`; dispose all `TextEditingController`s.
-- [ ] Delete `state.dart`.
-- [ ] ✅ Controller unit tests; no `AppState.I` or global `api` left (`grep` check).
+- [x] Remove all hardcoded personal data from production code (move to fakes/seed).
+- [x] Screens use `context.watch/read` instead of manual `addListener`; dispose all `TextEditingController`s.
+- [x] Delete `state.dart`.
+- [x] ✅ Controller unit tests; no `AppState.I` or global `api` left (`grep` check).
 
-### Step 7 — Move screens into features + fix bugs (P8, P11)
-- [ ] Move each screen into `features/<name>/`; delete `lib/screens/`, `ui.dart`, `services.dart`.
-- [ ] Occurrence form: `Form` + validators (address/location, type, date required), send ISO-8601 `DateTime`.
-- [ ] Show errors to the user (`SnackBar`) instead of swallowing them; login shows "credenciais inválidas".
-- [ ] Guard empty names in avatar initials.
-- [ ] ✅ Widget tests per screen using Fake repositories (login success/failure, add contact, SOS with no active contacts shows message, occurrence validation).
+> Notes: Steps 6 and 7 were done together, with screens rewritten straight into `features/`.
+> DI goes through `lib/app/dependencies.dart` (`AppDependencies.fromEnv`). The map controller
+> is `features/map/occurrences_controller.dart`. `SosController` is a plain class provided via
+> `Provider` because it holds no UI state. Demo data lives in `lib/data/fakes/demo_seed.dart`.
 
-### Step 8 — Quality gates
-- [ ] Stricter `analysis_options.yaml` (`prefer_const_constructors`, `always_declare_return_types`, `avoid_print`, `require_trailing_commas`, ...).
-- [ ] GitHub Actions workflow: `flutter analyze` + `flutter test` on every PR.
-- [ ] Update README "Estrutura do projeto" section to the final layout.
+### Step 7 — Move screens into features + fix bugs (P8, P11) [Done] ✅
+- [x] Move each screen into `features/<name>/`; delete `lib/screens/`, `ui.dart`, `services.dart`.
+- [x] Occurrence form: `Form` + validators (address/location, type, date required), send ISO-8601 `DateTime`.
+- [x] Show errors to the user (`SnackBar`) instead of swallowing them; login shows "credenciais inválidas".
+- [x] Guard empty names in avatar initials.
+- [x] ✅ Widget tests per screen using Fake repositories (login success/failure, add contact, SOS with no active contacts shows message, occurrence validation).
 
-## 4. Open questions (decide before Step 0)
+> Notes: Time is also required in the occurrence form. The date/time is sent as UTC ISO-8601.
+> The forms use `SingleChildScrollView` instead of `ListView` so every field is built and
+> validated, even when it is off-screen. `SosButton` has its own test for the 3 s hold.
+
+### Step 8 — Quality gates [Done] ✅
+- [x] Stricter `analysis_options.yaml` (`prefer_const_constructors`, `always_declare_return_types`, `avoid_print`, `require_trailing_commas`, ...).
+- [x] GitHub Actions workflow: `flutter analyze` + `flutter test` on every PR.
+- [x] Update README "Estrutura do projeto" section to the final layout.
+
+> Notes: Besides the listed rules, the analyzer now uses `strict-casts`/`strict-raw-types`
+> and `unawaited_futures`, and the formatter width is 120 (`formatter.page_width`). CI
+> (`.github/workflows/ci.yml`) also checks formatting. README updated in Portuguese (structure,
+> screens table, `--dart-define` backend config, provider in the stack).
+
+## 4. Open questions (decided 2026-10-21)
 
 1. **Occurrence types** — which list is correct? (root vs. `alerta_seguro/` copy)
+   → **Root**: `Agressão, Discriminação, Assédio, Outro`.
 2. **Retrofit or plain Dio?** Plan assumes plain Dio (less codegen, simpler for the team).
+   → **Plain Dio.** Retrofit deps removed in Step 0.
 3. **State management** — `provider` (assumed) vs. `riverpod`/`bloc`. Check what the course expects.
+   → **`provider`** + `ChangeNotifier`.
 4. **Backend** — is there a real backend repo/URL yet? Contract in README is still a draft.
+   → **No backend yet.** `USE_FAKE_API` defaults to `true`; `Fake*` repositories are the
+     default runtime path, `Http*` follow the README draft contract.
 5. **Login** — should contacts really be hidden while logged out, given SOS already uses them?
+   → **Yes**, keep contacts hidden while logged out (current behavior).
 
 ## 5. Out of scope
 - New features or visual redesign.
