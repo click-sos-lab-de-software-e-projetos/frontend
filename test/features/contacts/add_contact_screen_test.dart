@@ -1,3 +1,5 @@
+import 'package:alerta_seguro/data/models/contact.dart';
+import 'package:alerta_seguro/data/repositories/contact_repository.dart';
 import 'package:alerta_seguro/features/auth/auth_controller.dart';
 import 'package:alerta_seguro/features/profile/profile_screen.dart';
 import 'package:flutter/material.dart';
@@ -56,4 +58,58 @@ void main() {
     expect(find.text('Contato Exemplo 1'), findsNothing);
     expect(find.text('CONTATOS DE CONFIANÇA (0)'), findsOneWidget);
   });
+
+  testWidgets('pending contact gets a consent request link over WhatsApp; status refreshes on resume', (tester) async {
+    final repo = _CountingRepo(const [Contact(id: 'p', name: 'Bia', phone: '+5511900001234')]);
+    final deps = TestDeps(loggedIn: true, repository: repo);
+    await pumpTestApp(tester, home: const Scaffold(body: ProfileScreen()), deps: deps);
+    final loadsBefore = repo.lists;
+
+    await tester.tap(find.byTooltip('Enviar pedido de consentimento'));
+    await tester.pumpAndSettle();
+
+    final uri = deps.launched.single;
+    expect(uri.host, 'wa.me');
+    expect(uri.path, '/5511900001234');
+    expect(uri.queryParameters['text'], contains('#token=fake-p'));
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+    expect(repo.lists, loadsBefore + 1);
+  });
+
+  testWidgets('shows refused and confirmed statuses', (tester) async {
+    await pumpTestApp(
+      tester,
+      home: const Scaffold(body: ProfileScreen()),
+      deps: TestDeps(
+        loggedIn: true,
+        contacts: [
+          Contact(id: 'r', name: 'Caio', phone: '+1', refusedAt: DateTime.utc(2026)),
+          Contact(id: 'c', name: 'Dani', phone: '+2', consentedAt: DateTime.utc(2026)),
+        ],
+      ),
+    );
+
+    expect(find.text('+1 · Recusou receber alertas'), findsOneWidget);
+    expect(find.text('+2 · Consentimento confirmado'), findsOneWidget);
+    expect(find.byTooltip('Enviar pedido de consentimento'), findsOneWidget);
+  });
+}
+
+class _CountingRepo extends FakeContactRepository {
+  _CountingRepo(super.initial);
+
+  int lists = 0;
+
+  @override
+  Future<List<Contact>> list() {
+    lists++;
+    return super.list();
+  }
 }

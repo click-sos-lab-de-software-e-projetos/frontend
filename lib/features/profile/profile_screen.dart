@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 
 import '../../app/theme.dart';
 import '../../core/services/whatsapp_service.dart';
+import '../../data/models/contact.dart';
+import '../../data/repositories/repository_exception.dart';
 import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/outline_action_button.dart';
 import '../../shared/widgets/section_label.dart';
@@ -19,6 +21,25 @@ class ProfileScreen extends StatelessWidget {
 
   static void _go(BuildContext context, Widget screen) =>
       Navigator.push(context, MaterialPageRoute<void>(builder: (_) => screen));
+
+  static String _consentLabel(ConsentStatus status) => switch (status) {
+        ConsentStatus.confirmed => 'Consentimento confirmado',
+        ConsentStatus.refused => 'Recusou receber alertas',
+        ConsentStatus.pending => 'Aguardando consentimento',
+      };
+
+  static Future<void> _sendConsentRequest(BuildContext context, Contact contact) async {
+    final whatsApp = context.read<WhatsAppService>();
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final text = await context.read<ContactsController>().consentInvite(contact.id);
+      if (!await whatsApp.open(contact.phone, text)) {
+        messenger.showSnackBar(const SnackBar(content: Text('Não foi possível abrir o WhatsApp.')));
+      }
+    } on RepositoryException catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -131,16 +152,23 @@ class ProfileScreen extends StatelessWidget {
                                 children: [
                                   Text(c.name, style: const TextStyle(fontWeight: FontWeight.w700)),
                                   Text(
-                                    '${c.phone} · ${c.hasConsent ? 'Consentimento confirmado' : 'Aguardando consentimento'}',
+                                    '${c.phone} · ${_consentLabel(c.consentStatus)}',
                                     style: const TextStyle(fontSize: 11, color: Colors.white54),
                                   ),
                                 ],
                               ),
                             ),
-                            IconButton(
-                              icon: const Icon(Icons.chat, color: AppColors.cyan),
-                              onPressed: () => context.read<WhatsAppService>().open(c.phone, 'Olá!'),
-                            ),
+                            if (c.hasConsent)
+                              IconButton(
+                                icon: const Icon(Icons.chat, color: AppColors.cyan),
+                                onPressed: () => context.read<WhatsAppService>().open(c.phone, 'Olá!'),
+                              )
+                            else
+                              IconButton(
+                                tooltip: 'Enviar pedido de consentimento',
+                                icon: const Icon(Icons.send, color: AppColors.cyan),
+                                onPressed: () => _sendConsentRequest(context, c),
+                              ),
                           ],
                         ),
                       ),

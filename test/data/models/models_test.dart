@@ -44,6 +44,21 @@ void main() {
       );
     });
 
+    test('consent status is confirmed, refused or pending', () {
+      final refused = Contact.fromJson(const {
+        'id': '3',
+        'nome': 'Caio',
+        'telefone_whatsapp': '+1',
+        'consentido_em': null,
+        'recusado_em': '2026-05-02T12:00:00Z',
+      });
+      expect(refused.refusedAt, DateTime.utc(2026, 5, 2, 12));
+      expect(refused.consentStatus, ConsentStatus.refused);
+      final confirmed = Contact(id: '1', name: 'A', phone: '+1', consentedAt: DateTime.utc(2026));
+      expect(confirmed.consentStatus, ConsentStatus.confirmed);
+      expect(const Contact(id: '1', name: 'A', phone: '+1').consentStatus, ConsentStatus.pending);
+    });
+
     test('initial is safe for empty names', () {
       const contact = Contact(id: '1', name: 'Ana', phone: '+1');
       expect(contact.initial, 'A');

@@ -16,8 +16,8 @@ import 'package:flutter_test/flutter_test.dart';
 /// Fake dependencies whose state tests can inspect. With [loggedIn] the app
 /// starts with an active session, so contacts are loaded from [contacts].
 class TestDeps {
-  TestDeps({List<Contact>? contacts, this.location, bool loggedIn = false})
-      : contacts = FakeContactRepository(contacts ?? DemoSeed.contacts) {
+  TestDeps({List<Contact>? contacts, ContactRepository? repository, this.location, bool loggedIn = false})
+      : contacts = repository ?? FakeContactRepository(contacts ?? DemoSeed.contacts) {
     if (loggedIn) session.start('test-token');
   }
 

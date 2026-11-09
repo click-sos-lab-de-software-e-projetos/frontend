@@ -87,4 +87,16 @@ void main() {
     await c.remove('a');
     expect(c.contacts, [b]);
   });
+
+  test('consentInvite builds the WhatsApp text with the link', () async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    final c = ContactsController(FakeContactRepository(const [a]), Session()..start('t'));
+    await pumpEventQueue();
+
+    final text = await c.consentInvite('a');
+
+    expect(text, startsWith('Oi, A! Quero cadastrar você como meu contato de emergência no Click S.O.S.'));
+    expect(text, endsWith('#token=fake-a'));
+    c.dispose();
+  });
 }

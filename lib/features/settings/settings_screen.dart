@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../app/theme.dart';
+import '../../data/models/contact.dart';
 import '../../data/models/sos_settings.dart';
 import '../../data/repositories/repository_exception.dart';
 import '../../shared/widgets/app_card.dart';
@@ -67,7 +68,11 @@ class SettingsScreen extends StatelessWidget {
                         activeThumbColor: AppColors.cyan,
                         title: Text(c.name, style: const TextStyle(fontWeight: FontWeight.w700)),
                         subtitle: Text(
-                          c.hasConsent ? 'Receberá WhatsApp e Localização' : 'Aguardando consentimento do contato',
+                          switch (c.consentStatus) {
+                            ConsentStatus.confirmed => 'Receberá WhatsApp e Localização',
+                            ConsentStatus.refused => 'O contato recusou receber alertas',
+                            ConsentStatus.pending => 'Aguardando consentimento do contato',
+                          },
                           style: const TextStyle(fontSize: 11),
                         ),
                         value: c.alertEnabled,

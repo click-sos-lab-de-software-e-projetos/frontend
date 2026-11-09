@@ -58,6 +58,29 @@ void main() {
       );
     });
 
+    test('requestConsentLink posts to /contatos/{id}/consentimento and returns the url', () async {
+      final adapter = StubDioAdapter(
+        status: 201,
+        body: {'url': 'https://consentimento.example/#token=abc', 'expira_em': '2026-05-08T12:00:00Z'},
+      );
+      expect(
+        await HttpContactRepository(stubDio(adapter)).requestConsentLink('c-1'),
+        'https://consentimento.example/#token=abc',
+      );
+      expect(adapter.requests.single.method, 'POST');
+      expect(adapter.requests.single.path, '/contatos/c-1/consentimento');
+    });
+
+    test('requestConsentLink maps 409 to already consented', () {
+      final repo = HttpContactRepository(stubDio(StubDioAdapter(status: 409, body: {'detail': 'x'})));
+      expect(
+        repo.requestConsentLink('c-1'),
+        throwsA(
+          isA<RepositoryException>().having((e) => e.message, 'message', 'Este contato já confirmou o consentimento.'),
+        ),
+      );
+    });
+
     test('maps 401 to UnauthorizedException', () {
       expect(HttpContactRepository(stubDio(StubDioAdapter(status: 401))).list(), throwsA(isA<UnauthorizedException>()));
     });
@@ -78,6 +101,15 @@ void main() {
 
       await repo.delete(first.id);
       expect(await repo.list(), hasLength(3));
+    });
+
+    test('requestConsentLink returns a link for pending contacts only', () async {
+      final repo = FakeContactRepository([
+        const Contact(id: 'p', name: 'P', phone: '+1'),
+        Contact(id: 'ok', name: 'O', phone: '+2', consentedAt: DateTime.utc(2026)),
+      ]);
+      expect(await repo.requestConsentLink('p'), contains('#token='));
+      expect(repo.requestConsentLink('ok'), throwsA(isA<RepositoryException>()));
     });
   });
 }

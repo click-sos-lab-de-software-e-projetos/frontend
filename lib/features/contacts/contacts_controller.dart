@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 
 import '../../core/network/session.dart';
 import '../../data/models/contact.dart';
@@ -21,6 +21,7 @@ class ContactsController extends ChangeNotifier {
   List<Contact> _contacts = const [];
   bool _loading = false;
   String? _error;
+  AppLifecycleListener? _resumeListener;
 
   List<Contact> get contacts => List.unmodifiable(_contacts);
   List<Contact> get activeContacts => _contacts.where((c) => c.alertEnabled).toList(growable: false);
@@ -66,6 +67,18 @@ class ContactsController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// WhatsApp text inviting the contact to accept or refuse alerts. After the
+  /// first invite, contacts reload whenever the app resumes, so the status
+  /// changes when the user comes back from WhatsApp.
+  /// Throws [RepositoryException] on failure.
+  Future<String> consentInvite(String id) async {
+    final contact = _contacts.firstWhere((c) => c.id == id);
+    final link = await _repository.requestConsentLink(id);
+    _resumeListener ??= AppLifecycleListener(onResume: () => unawaited(load()));
+    return 'Oi, ${contact.name}! Quero cadastrar você como meu contato de emergência no Click S.O.S. '
+        'Para aceitar ou recusar, abra o link: $link';
+  }
+
   void _replace(Contact updated) {
     _contacts = [for (final c in _contacts) c.id == updated.id ? updated : c];
     notifyListeners();
@@ -84,6 +97,7 @@ class ContactsController extends ChangeNotifier {
   @override
   void dispose() {
     _session.removeListener(_onSession);
+    _resumeListener?.dispose();
     super.dispose();
   }
 }
