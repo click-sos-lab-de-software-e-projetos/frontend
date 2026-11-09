@@ -19,6 +19,7 @@ contatos de confiança via WhatsApp.
 | 6 | Login | `lib/features/auth/login_screen.dart` |
 | 7 | Configurações de perfil | `lib/features/profile/edit_profile_screen.dart` |
 | 8 | Registrar contato de confiança | `lib/features/contacts/add_contact_screen.dart` |
+| — | Cadastro | `lib/features/auth/register_screen.dart` |
 
 ## Stack
 
@@ -105,18 +106,39 @@ MAPS_API_KEY=SUA_CHAVE
 
 ### Backend
 
-Ainda não existe backend, então **o app roda em modo demonstração por padrão**:
-os repositórios falsos (`lib/data/repositories/*` → `Fake*Repository`) geram
-ocorrências fictícias, o login aceita qualquer e-mail/senha não vazios e os
-alertas ficam só na memória.
+Por padrão o app roda em **modo demonstração** (`USE_FAKE_API=true`): os
+repositórios falsos (`lib/data/repositories/*` → `Fake*Repository`) ficam só na
+memória, o login aceita qualquer e-mail/senha não vazios e, depois dele, aparecem
+dois contatos de exemplo.
 
-Para usar uma API real, passe as variáveis na hora de rodar/compilar:
+Para usar o [backend](https://github.com/click-sos-lab-de-software-e-projetos/backend)
+local, suba a API (veja o README dele) e rode:
 
 ```bash
-flutter run \
-  --dart-define=USE_FAKE_API=false \
-  --dart-define=API_BASE_URL=https://seu-backend.exemplo/v1
+# Emulador Android (10.0.2.2 é o computador; é o padrão de API_BASE_URL)
+flutter run --dart-define=USE_FAKE_API=false
+
+# Simulador iOS / desktop
+flutter run --dart-define=USE_FAKE_API=false --dart-define=API_BASE_URL=http://localhost:8000/api/v1
+
+# Chrome: o backend precisa liberar a origem com CORS_ORIGIN_REGEX=http://localhost:\d+
+flutter run -d chrome --dart-define=USE_FAKE_API=false --dart-define=API_BASE_URL=http://localhost:8000/api/v1
 ```
+
+O build de debug do Android permite HTTP sem TLS só para isso; em produção use HTTPS.
+
+O que já usa a API:
+
+| Funcionalidade | Rotas |
+|----------------|-------|
+| Cadastro, login e perfil | `POST /auth/cadastro`, `POST /auth/login`, `GET /auth/me` |
+| Contatos de confiança (máx. 3 ativos) | `GET/POST /contatos`, `PATCH/DELETE /contatos/{id}` |
+| Alerta SOS | `POST /sos/alertas` (`latitude`, `longitude`, `mensagem`) |
+
+- O token JWT fica **só na memória** (`Session`): fechar o app exige novo login. Ele vale 24 h; quando a API responde 401, a sessão é encerrada.
+- O alerta só é registrado no servidor com login e localização. O backend exige ao menos um contato ativo **com consentimento**; ainda não há rota para registrar o consentimento, então a mensagem de erro da API é exibida e o envio manual por WhatsApp continua disponível.
+- Mapa e ocorrências (`/occurrences`) ainda não existem no backend: use o modo demonstração para vê-los.
+- A edição de perfil continua só local (não há rota de atualização).
 
 ## Testes e análise
 
@@ -141,7 +163,7 @@ lib/
 │   └── theme.dart            # cores e tema
 ├── core/
 │   ├── config/env.dart       # variáveis --dart-define
-│   ├── network/api_client.dart  # configuração do Dio
+│   ├── network/              # Dio (api_client.dart) e sessão com o token (session.dart)
 │   └── services/             # localização e WhatsApp
 ├── data/
 │   ├── models/               # modelos imutáveis (fromJson/toJson)

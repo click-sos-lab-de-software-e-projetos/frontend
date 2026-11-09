@@ -8,24 +8,44 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('Contact', () {
-    const contact = Contact(id: '1', name: 'Ana', relation: 'Mãe', phone: '(11) 9', alertEnabled: false);
-
-    test('round-trips through JSON', () {
-      expect(Contact.fromJson(contact.toJson()), contact);
+    test('parses the API response', () {
+      final c = Contact.fromJson(const {
+        'id': '1',
+        'nome': 'Ana',
+        'telefone_whatsapp': '+5511900000001',
+        'ativo': false,
+        'consentido_em': '2026-05-01T12:00:00Z',
+        'criado_em': '2026-05-01T11:00:00Z',
+      });
+      expect(
+        c,
+        Contact(
+          id: '1',
+          name: 'Ana',
+          phone: '+5511900000001',
+          alertEnabled: false,
+          consentedAt: DateTime.utc(2026, 5, 1, 12),
+        ),
+      );
+      expect(c.hasConsent, isTrue);
     });
 
-    test('fromJson applies defaults', () {
-      final c = Contact.fromJson(const {'id': '2', 'name': 'Bia', 'phone': '1'});
-      expect(c.relation, 'Contato');
+    test('consent is pending when consentido_em is null', () {
+      final c = Contact.fromJson(const {'id': '2', 'nome': 'Bia', 'telefone_whatsapp': '+1', 'ativo': true});
+      expect(c.hasConsent, isFalse);
       expect(c.alertEnabled, isTrue);
     });
 
-    test('copyWith changes only given fields', () {
-      final c = contact.copyWith(alertEnabled: true);
-      expect(c, const Contact(id: '1', name: 'Ana', relation: 'Mãe', phone: '(11) 9'));
+    test('copyWith keeps consent and changes only given fields', () {
+      final c = Contact(id: '1', name: 'Ana', phone: '+1', alertEnabled: false, consentedAt: DateTime.utc(2026));
+      expect(
+        c.copyWith(alertEnabled: true),
+        Contact(id: '1', name: 'Ana', phone: '+1', consentedAt: DateTime.utc(2026)),
+      );
     });
 
     test('initial is safe for empty names', () {
+      const contact = Contact(id: '1', name: 'Ana', phone: '+1');
       expect(contact.initial, 'A');
       expect(contact.copyWith(name: '  ').initial, '?');
       expect(contact.copyWith(name: 'ze').initial, 'Z');
@@ -62,10 +82,12 @@ void main() {
   });
 
   group('SosAlert', () {
-    test('round-trips through JSON, with optional location', () {
-      const a = SosAlert(message: 'help', userId: '#1');
-      expect(a.toJson(), {'lat': null, 'lng': null, 'message': 'help', 'userId': '#1'});
-      expect(SosAlert.fromJson(a.toJson()), a);
+    test('serializes to the backend body and omits a missing message', () {
+      expect(
+        const SosAlert(latitude: -23.5, longitude: -46.6, message: 'help').toJson(),
+        {'latitude': -23.5, 'longitude': -46.6, 'mensagem': 'help'},
+      );
+      expect(const SosAlert(latitude: 1, longitude: 2).toJson(), {'latitude': 1, 'longitude': 2});
     });
   });
 
@@ -75,6 +97,20 @@ void main() {
       expect(UserProfile.fromJson(p.toJson()), p);
       expect(UserProfile.fromJson(const {}), UserProfile.empty);
       expect(p.copyWith(name: 'M').name, 'M');
+    });
+
+    test('fromApi maps the backend user', () {
+      final p = UserProfile.fromApi(const {
+        'id': 'u-1',
+        'nome_completo': 'Ana Silva',
+        'email': 'ana@example.com',
+        'telefone_pessoal': '+5511900000000',
+        'criado_em': '2026-05-01T11:00:00Z',
+      });
+      expect(
+        p,
+        const UserProfile(name: 'Ana Silva', email: 'ana@example.com', phone: '+5511900000000', protectionId: 'u-1'),
+      );
     });
   });
 

@@ -3,9 +3,11 @@ import 'package:provider/provider.dart';
 
 import '../../app/theme.dart';
 import '../../data/models/sos_settings.dart';
+import '../../data/repositories/repository_exception.dart';
 import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/page_header.dart';
 import '../../shared/widgets/section_label.dart';
+import '../auth/auth_controller.dart';
 import '../contacts/contacts_controller.dart';
 import 'sos_settings_controller.dart';
 
@@ -22,9 +24,19 @@ class SettingsScreen extends StatelessWidget {
     if (text != null && text.trim().isNotEmpty) settings.setMessage(text);
   }
 
+  static Future<void> _toggle(BuildContext context, String id, bool enabled) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await context.read<ContactsController>().setAlertEnabled(id, enabled);
+    } on RepositoryException catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final contacts = context.watch<ContactsController>();
+    final loggedIn = context.watch<AuthController>().loggedIn;
     final settingsController = context.watch<SosSettingsController>();
     final settings = settingsController.settings;
     return SafeArea(
@@ -38,6 +50,13 @@ class SettingsScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SectionLabel('Contatos de alerta ativos'),
+                if (!loggedIn)
+                  const AppCard(
+                    child: Text(
+                      'Entre na sua conta (aba Perfil) para gerenciar seus contatos.',
+                      style: TextStyle(fontSize: 12, color: Colors.white70),
+                    ),
+                  ),
                 for (final c in contacts.contacts)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),
@@ -47,9 +66,12 @@ class SettingsScreen extends StatelessWidget {
                         contentPadding: EdgeInsets.zero,
                         activeThumbColor: AppColors.cyan,
                         title: Text(c.name, style: const TextStyle(fontWeight: FontWeight.w700)),
-                        subtitle: const Text('Receberá WhatsApp e Localização', style: TextStyle(fontSize: 11)),
+                        subtitle: Text(
+                          c.hasConsent ? 'Receberá WhatsApp e Localização' : 'Aguardando consentimento do contato',
+                          style: const TextStyle(fontSize: 11),
+                        ),
                         value: c.alertEnabled,
-                        onChanged: (v) => contacts.setAlertEnabled(c.id, v),
+                        onChanged: (v) => _toggle(context, c.id, v),
                       ),
                     ),
                   ),

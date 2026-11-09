@@ -1,49 +1,90 @@
+import 'package:alerta_seguro/core/network/session.dart';
 import 'package:alerta_seguro/data/models/contact.dart';
+import 'package:alerta_seguro/data/repositories/contact_repository.dart';
+import 'package:alerta_seguro/data/repositories/repository_exception.dart';
 import 'package:alerta_seguro/features/contacts/contacts_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+class _FailingList extends FakeContactRepository {
+  @override
+  Future<List<Contact>> list() => Future.error(const RepositoryException('offline'));
+}
+
 void main() {
-  var n = 0;
-  ContactsController build([List<Contact> initial = const []]) =>
-      ContactsController(initial: initial, newId: () => 'id${n++}');
+  const a = Contact(id: 'a', name: 'A', phone: '+1');
+  const b = Contact(id: 'b', name: 'B', phone: '+2', alertEnabled: false);
 
-  setUp(() => n = 0);
+  test('loads on login and clears on logout', () async {
+    final session = Session();
+    final c = ContactsController(FakeContactRepository(const [a, b]), session);
+    expect(c.contacts, isEmpty);
 
-  test('add trims fields, defaults relation and notifies', () {
-    final c = build();
-    var notified = false;
-    c.addListener(() => notified = true);
+    session.start('t');
+    await pumpEventQueue();
+    expect(c.contacts, [a, b]);
+    expect(c.activeContacts, [a]);
 
-    final added = c.add(name: ' Ana ', phone: ' 11 9 ', relation: ' ');
-
-    expect(added, const Contact(id: 'id0', name: 'Ana', phone: '11 9', relation: 'Contato'));
-    expect(c.contacts, [added]);
-    expect(notified, isTrue);
-  });
-
-  test('add rejects empty name or phone', () {
-    final c = build();
-    expect(() => c.add(name: ' ', phone: '1'), throwsArgumentError);
-    expect(() => c.add(name: 'A', phone: ''), throwsArgumentError);
+    session.clear();
     expect(c.contacts, isEmpty);
   });
 
-  test('setAlertEnabled toggles one contact and activeContacts follows', () {
-    final c = build(const [
-      Contact(id: 'a', name: 'A', relation: 'r', phone: '1'),
-      Contact(id: 'b', name: 'B', relation: 'r', phone: '2', alertEnabled: false),
-    ]);
-    expect(c.activeContacts.map((e) => e.id), ['a']);
-
-    c.setAlertEnabled('b', true);
-    c.setAlertEnabled('a', false);
-    expect(c.activeContacts.map((e) => e.id), ['b']);
+  test('loads immediately when the session is already active', () async {
+    final c = ContactsController(FakeContactRepository(const [a]), Session()..start('t'));
+    await pumpEventQueue();
+    expect(c.contacts, [a]);
   });
 
-  test('contacts list is unmodifiable', () {
-    expect(
-      () => build().contacts.add(const Contact(id: 'x', name: 'x', relation: 'x', phone: 'x')),
-      throwsUnsupportedError,
+  test('load failure is exposed as error', () async {
+    final c = ContactsController(_FailingList(), Session()..start('t'));
+    await pumpEventQueue();
+    expect(c.error, 'offline');
+    expect(c.loading, isFalse);
+  });
+
+  test('add trims, saves on the server and notifies', () async {
+    final repo = FakeContactRepository();
+    final c = ContactsController(repo, Session()..start('t'));
+    await pumpEventQueue();
+    var notified = false;
+    c.addListener(() => notified = true);
+
+    final added = await c.add(name: ' Ana ', phone: ' +5511900000001 ');
+
+    expect(added.name, 'Ana');
+    expect(added.phone, '+5511900000001');
+    expect(c.contacts, [added]);
+    expect(await repo.list(), [added]);
+    expect(notified, isTrue);
+  });
+
+  test('add rejects empty name or phone', () async {
+    final c = ContactsController(FakeContactRepository(), Session()..start('t'));
+    expect(() => c.add(name: ' ', phone: '+1'), throwsArgumentError);
+    expect(() => c.add(name: 'A', phone: ''), throwsArgumentError);
+  });
+
+  test('setAlertEnabled updates on the server and surfaces the limit error', () async {
+    final c = ContactsController(
+      FakeContactRepository(const [
+        a,
+        Contact(id: 'c', name: 'C', phone: '+3'),
+        Contact(id: 'd', name: 'D', phone: '+4'),
+        b,
+      ]),
+      Session()..start('t'),
     );
+    await pumpEventQueue();
+
+    await expectLater(c.setAlertEnabled('b', true), throwsA(isA<RepositoryException>()));
+    await c.setAlertEnabled('a', false);
+    await c.setAlertEnabled('b', true);
+    expect(c.activeContacts.map((e) => e.id), ['c', 'd', 'b']);
+  });
+
+  test('remove deletes the contact', () async {
+    final c = ContactsController(FakeContactRepository(const [a, b]), Session()..start('t'));
+    await pumpEventQueue();
+    await c.remove('a');
+    expect(c.contacts, [b]);
   });
 }

@@ -1,19 +1,15 @@
 import '../models/contact.dart';
-import '../repositories/auth_repository.dart';
 
-/// Fictitious data shown in demo mode (`USE_FAKE_API=true`). Never put real
-/// personal data here.
+/// Fictitious contacts shown in demo mode (`USE_FAKE_API=true`) after login.
+/// Never put real personal data here.
 abstract final class DemoSeed {
-  static const profile = FakeAuthRepository.demoProfile;
-
-  static const contacts = [
-    Contact(id: 'demo-1', name: 'Contato Exemplo 1', relation: 'Cônjuge', phone: '(11) 90000-0001'),
+  static final contacts = [
     Contact(
-      id: 'demo-2',
-      name: 'Contato Exemplo 2',
-      relation: 'Familiar',
-      phone: '(11) 90000-0002',
-      alertEnabled: false,
+      id: 'demo-1',
+      name: 'Contato Exemplo 1',
+      phone: '+5511900000001',
+      consentedAt: DateTime.utc(2026),
     ),
+    const Contact(id: 'demo-2', name: 'Contato Exemplo 2', phone: '+5511900000002', alertEnabled: false),
   ];
 }

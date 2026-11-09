@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 /// Build-time configuration, set with `--dart-define`:
 ///
 /// ```
-/// flutter run --dart-define=USE_FAKE_API=false --dart-define=API_BASE_URL=https://...
+/// flutter run --dart-define=USE_FAKE_API=false --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1
 /// ```
 @immutable
 class Env {
@@ -13,10 +13,11 @@ class Env {
       : apiBaseUrl = const String.fromEnvironment('API_BASE_URL', defaultValue: defaultApiBaseUrl),
         useFakeApi = const bool.fromEnvironment('USE_FAKE_API', defaultValue: true);
 
-  static const defaultApiBaseUrl = 'https://api.alertaseguro.example/v1';
+  /// The local backend as seen from the Android emulator (`10.0.2.2` is the host machine).
+  static const defaultApiBaseUrl = 'http://10.0.2.2:8000/api/v1';
 
   final String apiBaseUrl;
 
-  /// There is no backend yet, so fake repositories are the default.
+  /// Demo mode (fake repositories) stays the default so the app runs without a backend.
   final bool useFakeApi;
 }

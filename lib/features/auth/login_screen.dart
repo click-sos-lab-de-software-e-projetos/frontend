@@ -8,6 +8,7 @@ import '../../shared/widgets/outline_action_button.dart';
 import '../../shared/widgets/section_label.dart';
 import '../profile/profile_controller.dart';
 import 'auth_controller.dart';
+import 'register_screen.dart';
 
 /// TELA 6 — Login.
 class LoginScreen extends StatefulWidget {
@@ -40,6 +41,14 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _openRegister() async {
+    final created = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => const RegisterScreen()),
+    );
+    if (created == true && mounted) Navigator.pop(context);
+  }
+
   @override
   Widget build(BuildContext context) {
     final loading = context.watch<AuthController>().loading;
@@ -58,6 +67,10 @@ class _LoginScreenState extends State<LoginScreen> {
             AppTextField('••••••••', _password, obscure: true),
             const SizedBox(height: 24),
             loading ? const Center(child: CircularProgressIndicator()) : OutlineActionButton('Entrar', _login),
+            const SizedBox(height: 8),
+            Center(
+              child: TextButton(onPressed: _openRegister, child: const Text('Não tem conta? Criar conta')),
+            ),
           ],
         ),
       ),

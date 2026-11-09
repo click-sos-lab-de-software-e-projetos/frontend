@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../app/theme.dart';
+import '../../core/network/session.dart';
 import '../../core/services/whatsapp_service.dart';
 import '../../shared/widgets/app_card.dart';
 import 'sos_controller.dart';
@@ -19,11 +20,12 @@ class _SosScreenState extends State<SosScreen> {
   Future<void> _fire() async {
     final whatsApp = context.read<WhatsAppService>();
     final messenger = ScaffoldMessenger.of(context);
+    final loggedIn = context.read<Session>().isActive;
     final outcome = await context.read<SosController>().trigger();
     if (!mounted) return;
     if (outcome.alertError != null) messenger.showSnackBar(SnackBar(content: Text(outcome.alertError!)));
     if (outcome.targets.isEmpty) {
-      messenger.showSnackBar(const SnackBar(content: Text('Ative ao menos um contato em Ajustes.')));
+      if (loggedIn) messenger.showSnackBar(const SnackBar(content: Text('Ative ao menos um contato em Ajustes.')));
       return;
     }
     // WhatsApp requires a user tap to send each message.

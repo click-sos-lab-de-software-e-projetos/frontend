@@ -89,10 +89,11 @@ class ProfileScreen extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     SectionLabel('Contatos de confiança (${contacts.length})'),
-                    TextButton(
-                      onPressed: () => _go(context, const AddContactScreen()),
-                      child: const Text('+ ADICIONAR', style: TextStyle(fontSize: 11)),
-                    ),
+                    if (auth.loggedIn)
+                      TextButton(
+                        onPressed: () => _go(context, const AddContactScreen()),
+                        child: const Text('+ ADICIONAR', style: TextStyle(fontSize: 11)),
+                      ),
                   ],
                 ),
                 if (!auth.loggedIn) ...[
@@ -130,7 +131,7 @@ class ProfileScreen extends StatelessWidget {
                                 children: [
                                   Text(c.name, style: const TextStyle(fontWeight: FontWeight.w700)),
                                   Text(
-                                    '${c.relation} · ${c.phone}',
+                                    '${c.phone} · ${c.hasConsent ? 'Consentimento confirmado' : 'Aguardando consentimento'}',
                                     style: const TextStyle(fontSize: 11, color: Colors.white54),
                                   ),
                                 ],

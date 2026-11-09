@@ -13,6 +13,14 @@ class UserProfile {
         protectionId: json['protectionId'] as String? ?? '',
       );
 
+  /// Response of `/auth/cadastro` and `/auth/me`.
+  factory UserProfile.fromApi(Map<String, dynamic> json) => UserProfile(
+        name: json['nome_completo'] as String? ?? '',
+        email: json['email'] as String? ?? '',
+        phone: json['telefone_pessoal'] as String? ?? '',
+        protectionId: json['id'] as String? ?? '',
+      );
+
   final String name;
   final String email;
   final String phone;

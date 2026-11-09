@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../core/network/session.dart';
 import '../core/services/location_service.dart';
 import '../core/services/whatsapp_service.dart';
+import '../data/models/user_profile.dart';
 import '../data/repositories/alert_repository.dart';
 import '../data/repositories/auth_repository.dart';
+import '../data/repositories/contact_repository.dart';
 import '../data/repositories/occurrence_repository.dart';
 import '../features/auth/auth_controller.dart';
 import '../features/contacts/contacts_controller.dart';
@@ -29,14 +32,18 @@ class AlertaApp extends StatelessWidget {
     final d = dependencies;
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider<Session>.value(value: d.session),
         Provider<LocationService>.value(value: d.location),
         Provider<WhatsAppService>.value(value: d.whatsApp),
         Provider<AuthRepository>.value(value: d.repositories.auth),
+        Provider<ContactRepository>.value(value: d.repositories.contacts),
         Provider<OccurrenceRepository>.value(value: d.repositories.occurrences),
         Provider<AlertRepository>.value(value: d.repositories.alerts),
-        ChangeNotifierProvider(create: (c) => AuthController(c.read<AuthRepository>())),
-        ChangeNotifierProvider(create: (_) => ProfileController(d.initialProfile)),
-        ChangeNotifierProvider(create: (_) => ContactsController(initial: d.initialContacts)),
+        ChangeNotifierProvider(create: (c) => AuthController(c.read<AuthRepository>(), c.read<Session>())),
+        ChangeNotifierProvider(create: (c) => ProfileController(UserProfile.empty, c.read<Session>())),
+        ChangeNotifierProvider(
+          create: (c) => ContactsController(c.read<ContactRepository>(), c.read<Session>()),
+        ),
         ChangeNotifierProvider(create: (_) => SosSettingsController()),
         ChangeNotifierProvider(
           create: (c) => OccurrencesController(c.read<OccurrenceRepository>(), c.read<LocationService>()),
@@ -47,7 +54,7 @@ class AlertaApp extends StatelessWidget {
             location: c.read<LocationService>(),
             contacts: c.read<ContactsController>(),
             settings: c.read<SosSettingsController>(),
-            profile: c.read<ProfileController>(),
+            session: c.read<Session>(),
           ),
         ),
       ],

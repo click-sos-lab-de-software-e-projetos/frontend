@@ -1,40 +1,41 @@
 import '../core/config/env.dart';
+import '../core/network/api_client.dart';
+import '../core/network/session.dart';
 import '../core/services/location_service.dart';
 import '../core/services/whatsapp_service.dart';
 import '../data/fakes/demo_seed.dart';
-import '../data/models/contact.dart';
-import '../data/models/user_profile.dart';
 import '../data/repositories/repositories.dart';
 
 /// Everything the app needs from the outside world; swapped for fakes in tests.
 class AppDependencies {
-  const AppDependencies({
+  AppDependencies({
     required this.repositories,
+    Session? session,
     this.location = const GeolocatorLocationService(),
     this.whatsApp = const WhatsAppService(),
-    this.initialProfile = UserProfile.empty,
-    this.initialContacts = const [],
-  });
+  }) : session = session ?? Session();
 
-  factory AppDependencies.fromEnv(Env env) =>
-      env.useFakeApi ? AppDependencies.demo() : AppDependencies(repositories: Repositories.fromEnv(env));
+  factory AppDependencies.fromEnv(Env env) {
+    if (env.useFakeApi) return AppDependencies.demo();
+    final session = Session();
+    return AppDependencies(session: session, repositories: Repositories.http(buildDio(env, session: session)));
+  }
 
-  /// Fake repositories plus demo seed data.
+  /// Fake repositories with demo contacts.
   factory AppDependencies.demo({
     LocationService location = const GeolocatorLocationService(),
     WhatsAppService whatsApp = const WhatsAppService(),
   }) =>
       AppDependencies(
-        repositories: Repositories.fake(),
+        repositories: Repositories.fake(contacts: DemoSeed.contacts),
         location: location,
         whatsApp: whatsApp,
-        initialProfile: DemoSeed.profile,
-        initialContacts: DemoSeed.contacts,
       );
 
   final Repositories repositories;
+
+  /// Shared with the HTTP client, which sends its token.
+  final Session session;
   final LocationService location;
   final WhatsAppService whatsApp;
-  final UserProfile initialProfile;
-  final List<Contact> initialContacts;
 }

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../app/theme.dart';
+import '../../core/utils/phone.dart';
+import '../../data/repositories/repository_exception.dart';
 import '../../shared/widgets/app_text_field.dart';
 import '../../shared/widgets/outline_action_button.dart';
 import '../../shared/widgets/section_label.dart';
@@ -19,22 +21,27 @@ class _AddContactScreenState extends State<AddContactScreen> {
   final _formKey = GlobalKey<FormState>();
   final _name = TextEditingController();
   final _phone = TextEditingController();
-  final _relation = TextEditingController();
+  bool _saving = false;
 
   @override
   void dispose() {
     _name.dispose();
     _phone.dispose();
-    _relation.dispose();
     super.dispose();
   }
 
-  static String? _required(String? v, String message) => (v ?? '').trim().isEmpty ? message : null;
-
-  void _add() {
-    if (!_formKey.currentState!.validate()) return;
-    context.read<ContactsController>().add(name: _name.text, phone: _phone.text, relation: _relation.text);
-    Navigator.pop(context);
+  Future<void> _add() async {
+    if (_saving || !_formKey.currentState!.validate()) return;
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _saving = true);
+    try {
+      await context.read<ContactsController>().add(name: _name.text, phone: toE164(_phone.text));
+      if (mounted) Navigator.pop(context);
+    } on RepositoryException catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   @override
@@ -52,18 +59,29 @@ class _AddContactScreenState extends State<AddContactScreen> {
                   style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
                 ),
                 const SectionLabel('Nome'),
-                AppTextField('Nome do contato', _name, validator: (v) => _required(v, 'Informe o nome.')),
+                AppTextField(
+                  'Nome do contato',
+                  _name,
+                  validator: (v) => (v ?? '').trim().isEmpty ? 'Informe o nome.' : null,
+                ),
                 const SectionLabel('Telefone (com DDD, WhatsApp)'),
                 AppTextField(
                   'Telefone para contato',
                   _phone,
                   keyboardType: TextInputType.phone,
-                  validator: (v) => _required(v, 'Informe o telefone.'),
+                  validator: (v) => (v ?? '').trim().isEmpty
+                      ? 'Informe o telefone.'
+                      : isValidPhone(v!)
+                          ? null
+                          : 'Telefone inválido.',
                 ),
-                const SectionLabel('Parentesco'),
-                AppTextField('Ex.: Cônjuge, Mãe, Amigo', _relation),
+                const SizedBox(height: 8),
+                const Text(
+                  'O contato só recebe alertas depois de confirmar o consentimento.',
+                  style: TextStyle(fontSize: 11, color: Colors.white54),
+                ),
                 const SizedBox(height: 24),
-                OutlineActionButton('Adicionar', _add),
+                _saving ? const Center(child: CircularProgressIndicator()) : OutlineActionButton('Adicionar', _add),
               ],
             ),
           ),

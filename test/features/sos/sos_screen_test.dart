@@ -1,4 +1,8 @@
+import 'package:alerta_seguro/core/services/location_service.dart';
 import 'package:alerta_seguro/data/models/contact.dart';
+import 'package:alerta_seguro/data/models/sos_alert.dart';
+import 'package:alerta_seguro/data/models/sos_settings.dart';
+import 'package:alerta_seguro/features/sos/sos_controller.dart';
 import 'package:alerta_seguro/features/sos/sos_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -20,28 +24,46 @@ void main() {
     final deps = await pumpTestApp(
       tester,
       home: const Scaffold(body: SosScreen()),
-      deps: TestDeps(contacts: const [Contact(id: 'a', name: 'A', relation: 'r', phone: '1', alertEnabled: false)]),
+      deps: TestDeps(
+        loggedIn: true,
+        location: FakeLocationService((lat: 1, lng: 2)),
+        contacts: const [Contact(id: 'a', name: 'A', phone: '+5511900000001', alertEnabled: false)],
+      ),
     );
 
     await holdSos(tester);
 
     expect(find.text('Ative ao menos um contato em Ajustes.'), findsOneWidget);
-    expect(deps.alerts.sent, hasLength(1));
+    expect(deps.alerts.sent, [const SosAlert(latitude: 1, longitude: 2, message: SosSettings.defaultMessage)]);
   });
 
   testWidgets('with active contacts it offers WhatsApp for each', (tester) async {
-    final deps = await pumpTestApp(tester, home: const Scaffold(body: SosScreen()));
+    final deps = await pumpTestApp(
+      tester,
+      home: const Scaffold(body: SosScreen()),
+      deps: TestDeps(loggedIn: true, location: FakeLocationService((lat: 1, lng: 2))),
+    );
 
     await holdSos(tester);
     expect(find.text('Enviar alerta por WhatsApp'), findsOneWidget);
+    expect(deps.alerts.sent, hasLength(1));
 
     await tester.tap(find.text('Contato Exemplo 1'));
     expect(deps.launched.single.host, 'wa.me');
     expect(deps.launched.single.path, '/5511900000001');
   });
 
-  testWidgets('releasing early does not fire', (tester) async {
+  testWidgets('logged out it asks to log in and does not call the server', (tester) async {
     final deps = await pumpTestApp(tester, home: const Scaffold(body: SosScreen()));
+
+    await holdSos(tester);
+
+    expect(find.text(SosController.notLoggedIn), findsOneWidget);
+    expect(deps.alerts.sent, isEmpty);
+  });
+
+  testWidgets('releasing early does not fire', (tester) async {
+    final deps = await pumpTestApp(tester, home: const Scaffold(body: SosScreen()), deps: TestDeps(loggedIn: true));
     final gesture = await tester.startGesture(tester.getCenter(find.text('SOS')));
     await tester.pump(const Duration(seconds: 1));
     await gesture.up();

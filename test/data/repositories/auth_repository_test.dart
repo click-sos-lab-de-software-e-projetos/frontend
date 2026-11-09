@@ -6,41 +6,101 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../helpers/stub_dio_adapter.dart';
 
 void main() {
-  group('HttpAuthRepository', () {
-    test('posts credentials and parses the profile', () async {
-      final adapter = StubDioAdapter(body: {'name': 'Ana', 'phone': '1', 'protectionId': '#AS-1'});
-      final profile = await HttpAuthRepository(stubDio(adapter)).login(email: 'a@x', password: 'pw');
+  const user = {
+    'id': 'u-1',
+    'nome_completo': 'Ana',
+    'email': 'a@x.com',
+    'telefone_pessoal': '+5511900000000',
+    'criado_em': '2026-05-01T11:00:00Z',
+  };
+  const profile = UserProfile(name: 'Ana', email: 'a@x.com', phone: '+5511900000000', protectionId: 'u-1');
 
-      expect(profile, const UserProfile(name: 'Ana', email: 'a@x', phone: '1', protectionId: '#AS-1'));
+  group('HttpAuthRepository', () {
+    test('login posts email/senha and returns the access token', () async {
+      final adapter = StubDioAdapter(body: {'access_token': 'jwt', 'token_type': 'bearer', 'expires_in': 86400});
+      final token = await HttpAuthRepository(stubDio(adapter)).login(email: 'a@x.com', password: 'pw');
+
+      expect(token, 'jwt');
       expect(adapter.requests.single.path, '/auth/login');
       expect(adapter.requests.single.method, 'POST');
-      expect(adapter.requests.single.data, {'email': 'a@x', 'password': 'pw'});
+      expect(adapter.requests.single.data, {'email': 'a@x.com', 'senha': 'pw'});
+      expect(adapter.requests.single.extra['public'], isTrue);
     });
 
-    test('throws InvalidCredentialsException on 401', () {
+    test('login throws InvalidCredentialsException on 401', () {
       final repo = HttpAuthRepository(stubDio(StubDioAdapter(status: 401)));
-      expect(repo.login(email: 'a@x', password: 'bad'), throwsA(isA<InvalidCredentialsException>()));
+      expect(repo.login(email: 'a@x.com', password: 'bad'), throwsA(isA<InvalidCredentialsException>()));
     });
 
-    test('throws RepositoryException on server errors', () {
+    test('login throws RepositoryException on server errors', () {
       final repo = HttpAuthRepository(stubDio(StubDioAdapter(status: 500)));
       expect(
-        repo.login(email: 'a@x', password: 'pw'),
+        repo.login(email: 'a@x.com', password: 'pw'),
         throwsA(isA<RepositoryException>().having((e) => e, 'type', isNot(isA<InvalidCredentialsException>()))),
       );
+    });
+
+    test('register posts the backend fields and parses the user', () async {
+      final adapter = StubDioAdapter(status: 201, body: user);
+      final created = await HttpAuthRepository(stubDio(adapter))
+          .register(name: 'Ana', email: 'a@x.com', phone: '+5511900000000', password: '12345678');
+
+      expect(created, profile);
+      expect(adapter.requests.single.path, '/auth/cadastro');
+      expect(adapter.requests.single.data, {
+        'nome_completo': 'Ana',
+        'email': 'a@x.com',
+        'telefone_pessoal': '+5511900000000',
+        'senha': '12345678',
+      });
+    });
+
+    test('register maps 409 to EmailInUseException', () {
+      final repo = HttpAuthRepository(stubDio(StubDioAdapter(status: 409, body: {'detail': 'E-mail já cadastrado.'})));
+      expect(
+        repo.register(name: 'Ana', email: 'a@x.com', phone: '+5511900000000', password: '12345678'),
+        throwsA(isA<EmailInUseException>()),
+      );
+    });
+
+    test('me gets the profile and maps 401 to UnauthorizedException', () async {
+      final adapter = StubDioAdapter(body: user);
+      expect(await HttpAuthRepository(stubDio(adapter)).me(), profile);
+      expect(adapter.requests.single.path, '/auth/me');
+
+      final repo = HttpAuthRepository(stubDio(StubDioAdapter(status: 401)));
+      expect(repo.me(), throwsA(isA<UnauthorizedException>()));
     });
   });
 
   group('FakeAuthRepository', () {
-    test('accepts any non-empty email and password', () async {
-      final profile = await FakeAuthRepository().login(email: ' me@x ', password: '1');
-      expect(profile.email, 'me@x');
+    test('accepts any non-empty email and password for unknown accounts', () async {
+      final repo = FakeAuthRepository();
+      expect(await repo.login(email: ' me@x ', password: '1'), isNotEmpty);
+      expect((await repo.me()).email, 'me@x');
     });
 
     test('rejects empty email or password', () {
       final repo = FakeAuthRepository();
       expect(repo.login(email: '', password: '1'), throwsA(isA<InvalidCredentialsException>()));
       expect(repo.login(email: 'me@x', password: ''), throwsA(isA<InvalidCredentialsException>()));
+    });
+
+    test('registered accounts need their password and duplicates are rejected', () async {
+      final repo = FakeAuthRepository();
+      await repo.register(name: 'Ana', email: 'A@x.com', phone: '+1', password: '12345678');
+
+      expect(
+        repo.register(name: 'Ana', email: 'a@x.com', phone: '+1', password: '12345678'),
+        throwsA(isA<EmailInUseException>()),
+      );
+      expect(repo.login(email: 'a@x.com', password: 'wrong'), throwsA(isA<InvalidCredentialsException>()));
+      await repo.login(email: 'a@x.com', password: '12345678');
+      expect((await repo.me()).name, 'Ana');
+    });
+
+    test('me without login is unauthorized', () {
+      expect(FakeAuthRepository().me(), throwsA(isA<UnauthorizedException>()));
     });
   });
 }

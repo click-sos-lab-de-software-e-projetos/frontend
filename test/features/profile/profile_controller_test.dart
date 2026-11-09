@@ -1,3 +1,4 @@
+import 'package:alerta_seguro/core/network/session.dart';
 import 'package:alerta_seguro/data/models/user_profile.dart';
 import 'package:alerta_seguro/features/profile/profile_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -21,5 +22,14 @@ void main() {
     const p = UserProfile(name: 'N', email: 'e', phone: 'p', protectionId: '#1');
     c.replace(p);
     expect(c.profile, p);
+  });
+
+  test('resets when the session ends', () {
+    final session = Session()..start('t');
+    final c = ProfileController(UserProfile.empty, session);
+    c.replace(const UserProfile(name: 'N', email: 'e', phone: 'p', protectionId: '#1'));
+
+    session.clear();
+    expect(c.profile, UserProfile.empty);
   });
 }
