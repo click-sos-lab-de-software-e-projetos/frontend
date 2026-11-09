@@ -21,7 +21,6 @@ class _MapScreenState extends State<MapScreen> {
   GoogleMapController? mapController;
   LatLng center = const LatLng(-23.5505, -46.6333);
   final app = AppState.I;
-  
 
   void _onMapCreated(GoogleMapController controller) {
     mapController = controller;
@@ -36,21 +35,17 @@ class _MapScreenState extends State<MapScreen> {
 
   Future<void> _load() async {
     final p = await currentPosition();
-    if (p != null){
+    if (p != null) {
       center = p;
 
-      if (mapController != null){
+      if (mapController != null) {
         await mapController!.animateCamera(
           CameraUpdate.newLatLngZoom(center, 14),
         );
       }
     }
     try {
-      final r = await api.getOccurrences(
-        center.latitude, 
-        center.longitude, 
-        5000
-      );
+      final r = await api.getOccurrences(center.latitude, center.longitude, 5000);
       app.occurrences
         ..clear()
         ..addAll(r.map((e) => Occurrence(LatLng(e['lat'], e['lng']), e['severity'] ?? 1, e['type'] ?? '')));
@@ -59,9 +54,13 @@ class _MapScreenState extends State<MapScreen> {
       final rnd = Random(7);
       app.occurrences
         ..clear()
-        ..addAll(List.generate(40, (_) => Occurrence(
-            LatLng(center.latitude + (rnd.nextDouble() - .5) * .04, center.longitude + (rnd.nextDouble() - .5) * .04),
-            1 + rnd.nextInt(3), 'Ocorrência')));
+        ..addAll(List.generate(
+            40,
+            (_) => Occurrence(
+                LatLng(
+                    center.latitude + (rnd.nextDouble() - .5) * .04, center.longitude + (rnd.nextDouble() - .5) * .04),
+                1 + rnd.nextInt(3),
+                'Ocorrência')));
     }
     if (mounted) setState(() {});
   }
@@ -72,8 +71,8 @@ class _MapScreenState extends State<MapScreen> {
     for (final o in app.occurrences) {
       final c = o.severity == 3 ? kRed : (o.severity == 2 ? Colors.orange : Colors.yellow);
       for (final (r, a) in [(450.0, .10), (280.0, .16), (130.0, .26)]) {
-        out.add(Circle(circleId: CircleId('c${id++}'), center: o.pos, radius: r,
-            fillColor: c.withOpacity(a), strokeWidth: 0));
+        out.add(Circle(
+            circleId: CircleId('c${id++}'), center: o.pos, radius: r, fillColor: c.withOpacity(a), strokeWidth: 0));
       }
     }
     return out;
@@ -97,7 +96,9 @@ class _MapScreenState extends State<MapScreen> {
                 child: Row(children: const [
                   Icon(Icons.local_fire_department, color: kRed),
                   SizedBox(width: 10),
-                  Expanded(child: Text('Mapa de calor colaborativo de segurança', style: TextStyle(fontWeight: FontWeight.w700))),
+                  Expanded(
+                      child: Text('Mapa de calor colaborativo de segurança',
+                          style: TextStyle(fontWeight: FontWeight.w700))),
                 ]),
               ),
             ),

@@ -9,6 +9,9 @@ analyzer:
     - windows/**
     - macos/**
     - linux/**
+    # Mapa do Lucas (28/10) escrito para a estrutura antiga; não compila e não é
+    # usado. Fica como referência para a Tarefa 5 do plano do backend.
+    - lib/screens/**
   language:
     strict-casts: true
     strict-raw-types: true

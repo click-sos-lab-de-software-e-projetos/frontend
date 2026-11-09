@@ -28,7 +28,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         content: TextField(controller: c, maxLength: 160, maxLines: 4),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
-          TextButton(onPressed: () { app.sosMessage = c.text; app.update(); Navigator.pop(context); }, child: const Text('Salvar')),
+          TextButton(
+              onPressed: () {
+                app.sosMessage = c.text;
+                app.update();
+                Navigator.pop(context);
+              },
+              child: const Text('Salvar')),
         ],
       ),
     );
@@ -48,33 +54,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: box(
                     pad: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                     child: SwitchListTile(
-                      contentPadding: EdgeInsets.zero, activeThumbColor: kCyan,
+                      contentPadding: EdgeInsets.zero,
+                      activeThumbColor: kCyan,
                       title: Text(c.name, style: const TextStyle(fontWeight: FontWeight.w700)),
                       subtitle: const Text('Receberá WhatsApp e Localização', style: TextStyle(fontSize: 11)),
                       value: c.alertEnabled,
-                      onChanged: (v) { c.alertEnabled = v; app.update(); },
+                      onChanged: (v) {
+                        c.alertEnabled = v;
+                        app.update();
+                      },
                     ),
                   ),
                 ),
               sectionLabel('Mensagem de socorro'),
-              box(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              box(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text('"${app.sosMessage} [link do mapa]"', style: const TextStyle(fontSize: 13, color: Colors.white70)),
                 const Divider(color: Colors.white12),
                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                  Text('${app.sosMessage.length} / 160 caracteres', style: const TextStyle(fontSize: 11, color: Colors.white38)),
-                  GestureDetector(onTap: _editMessage, child: const Text('ALTERAR', style: TextStyle(color: kCyan, fontSize: 11, fontWeight: FontWeight.w700))),
+                  Text('${app.sosMessage.length} / 160 caracteres',
+                      style: const TextStyle(fontSize: 11, color: Colors.white38)),
+                  GestureDetector(
+                      onTap: _editMessage,
+                      child: const Text('ALTERAR',
+                          style: TextStyle(color: kCyan, fontSize: 11, fontWeight: FontWeight.w700))),
                 ]),
               ])),
               sectionLabel('Informações adicionais'),
               box(
                 pad: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                 child: SwitchListTile(
-                  contentPadding: EdgeInsets.zero, activeThumbColor: kCyan,
+                  contentPadding: EdgeInsets.zero,
+                  activeThumbColor: kCyan,
                   secondary: const Icon(Icons.shield_outlined, color: kRed),
                   title: const Text('Alerta Silencioso', style: TextStyle(fontWeight: FontWeight.w700)),
                   subtitle: const Text('Sem som ou luz de tela ao ativar SOS', style: TextStyle(fontSize: 11)),
                   value: app.silentAlert,
-                  onChanged: (v) { app.silentAlert = v; app.update(); },
+                  onChanged: (v) {
+                    app.silentAlert = v;
+                    app.update();
+                  },
                 ),
               ),
             ]),
