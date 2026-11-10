@@ -4,7 +4,9 @@ import 'package:alerta_seguro/data/repositories/region_repository.dart';
 import 'package:alerta_seguro/data/repositories/repository_exception.dart';
 import 'package:alerta_seguro/features/map/map_controller.dart';
 import 'package:alerta_seguro/features/map/map_screen.dart';
+import 'package:alerta_seguro/features/map/widgets/feedback_sheet.dart';
 import 'package:alerta_seguro/features/map/widgets/region_card.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
@@ -86,5 +88,27 @@ void main() {
     );
 
     expect(_googleMap(tester).myLocationEnabled, isFalse);
+  });
+
+  testWidgets('feedback from the district card thanks and leaves the map unchanged', (tester) async {
+    final deps = await _pump(tester, TestDeps(loggedIn: true));
+    final region = tester.element(find.byType(MapScreen)).read<MapController>().regions.first;
+    final circlesBefore = _googleMap(tester).circles;
+    expect(find.text('Registrar ocorrência'), findsNothing);
+
+    _googleMap(tester).circles.firstWhere((c) => c.circleId.value == region.id).onTap!();
+    await tester.pump();
+    await tester.tap(find.text('Enviar feedback'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Iluminação'));
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, 'Enviar'));
+    await tester.pumpAndSettle();
+
+    expect(deps.regions.feedbacks.single.regionId, region.id);
+    expect(find.text(MapScreen.thanks), findsOneWidget);
+    expect(find.text(FeedbackSheet.pendingNotice), findsNothing);
+    expect(_googleMap(tester).circles, circlesBefore);
+    expect(deps.regions.requests, hasLength(1));
   });
 }

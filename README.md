@@ -1,7 +1,7 @@
 # Alerta Seguro — Frontend (Flutter)
 
 Aplicativo mobile de segurança colaborativa: **mapa de risco** por distrito
-(dados criminais da SSP-SP) + **botão SOS** que envia sua localização para
+(dados criminais da SSP-SP) com feedback da comunidade + **botão SOS** que envia sua localização para
 contatos de confiança via WhatsApp.
 
 > Projeto acadêmico — Laboratório de Software e Projetos.
@@ -12,7 +12,7 @@ contatos de confiança via WhatsApp.
 | # | Tela | Arquivo |
 |---|------|---------|
 | 1 | Mapa de risco por distrito | `lib/features/map/map_screen.dart` |
-| 2 | Registro de ocorrência | `lib/features/occurrence/occurrence_screen.dart` |
+| 2 | Feedback por distrito (folha sobre o mapa) | `lib/features/map/widgets/feedback_sheet.dart` |
 | 3 | Emergência / SOS (um toque, 5 s para cancelar) | `lib/features/sos/sos_screen.dart` |
 | 4 | Configurar SOS | `lib/features/settings/settings_screen.dart` |
 | 5 | Perfil | `lib/features/profile/profile_screen.dart` |
@@ -140,6 +140,7 @@ O que já usa a API:
 | Contatos de confiança (máx. 3 ativos) | `GET/POST /contatos`, `PATCH/DELETE /contatos/{id}` |
 | Alerta SOS | `POST /sos/alertas` (`latitude`, `longitude`), `GET /sos/alertas/{id}` |
 | Mapa de risco | `GET /mapa/regioes?latitude&longitude&raio=10000` |
+| Feedback do distrito | `POST /mapa/regioes/{id}/feedbacks` (`categoria`, `texto`) |
 
 - O token JWT fica no armazenamento seguro do aparelho (`SecureTokenStore`): ao abrir o app, a sessão é restaurada na hora e o perfil é buscado em `GET /auth/me` em segundo plano. Ele vale 24 h; quando a API responde 401, a sessão é encerrada e o token apagado. Falha de rede mantém o token. No modo demo (`USE_FAKE_API=true`) o token fica só na memória.
 - S.O.S: um toque inicia uma contagem de 5 s com "Cancelar"; depois o app lê a localização e cria o alerta sem `mensagem` — o backend usa a mensagem salva em Ajustes ou a padrão. O status é consultado a cada 3 s (até 2 min) e o painel mostra enviando, enviado, erro ou "ainda enviando".
@@ -147,7 +148,7 @@ O que já usa a API:
 - O backend exige ao menos um contato ativo **com consentimento**; sem isso, a mensagem de erro da API é exibida.
 - Mapa: um círculo por distrito, com centro, raio e cor (`cor_hex`) da API; tocar mostra nome, score e faixa (Baixo < 34, Médio 34–66, Alto ≥ 67). A rota exige login: deslogado, o mapa fica sem círculos e pede para entrar. Ao parar de mover a câmera, recarrega se o centro andou mais de 2 km.
 - O mapa nunca pede permissão de localização (MAPM-03): usa a posição só se ela já foi liberada (ex.: pelo S.O.S); senão centraliza na Praça da Sé.
-- Registro de ocorrência (`POST /occurrences`) ainda não existe no backend; a Tarefa 6 troca pelo feedback por região.
+- Feedback comunitário (MAP-04): no cartão do distrito, "Enviar feedback" abre uma folha com a categoria (Iluminação, Assalto, Assédio, Pouco movimento, Falta de policiamento, Outro) e um texto opcional de até 500 caracteres (obrigatório em "Outro"). O relato fica pendente de análise e não muda o score nem a cor do mapa.
 - A edição de perfil continua só local (não há rota de atualização).
 
 ## Testes e análise
@@ -180,7 +181,7 @@ lib/
 │   ├── repositories/         # interface + implementação HTTP + fake
 │   └── fakes/demo_seed.dart  # dados de demonstração
 ├── features/                 # uma pasta por funcionalidade (tela + controller)
-│   ├── auth/  contacts/  map/  occurrence/
+│   ├── auth/  contacts/  map/
 │   └── profile/  settings/  sos/
 └── shared/widgets/           # componentes visuais reutilizáveis
 test/                         # espelha a estrutura de lib/ (+ test/helpers)
@@ -191,7 +192,6 @@ plans/                        # planos de implementação/refatoração
 
 | Método | Rota | Corpo / parâmetros | Resposta |
 |--------|------|--------------------|----------|
-| `POST` | `/occurrences` | `{ address, lat, lng, type, datetime }` (`datetime` em ISO-8601 UTC) | — |
 | `POST` | `/alerts` | `{ lat, lng, message, userId }` | — |
 | `POST` | `/auth/login` | `{ email, password }` | objeto do usuário/token |
 

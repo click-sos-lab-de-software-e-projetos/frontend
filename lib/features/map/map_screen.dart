@@ -6,8 +6,8 @@ import '../../app/theme.dart';
 import '../../core/services/geo_point.dart';
 import '../../data/models/risk_region.dart';
 import '../../shared/widgets/app_card.dart';
-import '../occurrence/occurrence_screen.dart';
 import 'map_controller.dart';
+import 'widgets/feedback_sheet.dart';
 import 'widgets/region_card.dart';
 import 'widgets/region_circles.dart';
 
@@ -15,6 +15,7 @@ import 'widgets/region_circles.dart';
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
 
+  static const thanks = 'Obrigado! Seu relato fica pendente de análise e não muda o mapa.';
   static const loginNeeded = 'Entre na sua conta (aba Perfil) para ver as regiões de risco.';
 
   @override
@@ -36,6 +37,13 @@ class _MapScreenState extends State<MapScreen> {
     await controller.init();
     if (!mounted) return;
     await _map?.animateCamera(CameraUpdate.newLatLng(_latLng(controller.center)));
+  }
+
+  Future<void> _feedback(RiskRegion region) async {
+    final messenger = ScaffoldMessenger.of(context);
+    if (await showFeedbackSheet(context, region)) {
+      messenger.showSnackBar(const SnackBar(content: Text(MapScreen.thanks)));
+    }
   }
 
   static LatLng _latLng(GeoPoint p) => LatLng(p.lat, p.lng);
@@ -98,22 +106,16 @@ class _MapScreenState extends State<MapScreen> {
                     const _Notice(text: 'Nenhuma região de risco por aqui.'),
                   const Spacer(),
                   if (selected != null)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 72),
-                      child: RegionCard(region: selected, onClose: () => map.select(null)),
+                    RegionCard(
+                      region: selected,
+                      onClose: () => map.select(null),
+                      onFeedback: () => _feedback(selected),
                     ),
                 ],
               ),
             ),
           ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppColors.cyan,
-        foregroundColor: Colors.black,
-        icon: const Icon(Icons.add_location_alt),
-        label: const Text('Registrar ocorrência'),
-        onPressed: () => Navigator.push(context, MaterialPageRoute<void>(builder: (_) => const OccurrenceScreen())),
       ),
     );
   }

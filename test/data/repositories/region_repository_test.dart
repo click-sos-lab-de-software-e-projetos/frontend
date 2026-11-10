@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:alerta_seguro/data/models/region_feedback.dart';
 import 'package:alerta_seguro/data/models/risk_region.dart';
 import 'package:alerta_seguro/data/repositories/region_repository.dart';
 import 'package:alerta_seguro/data/repositories/repository_exception.dart';
@@ -57,6 +58,36 @@ void main() {
         HttpRegionRepository(stubDio(adapter)).fetchNearby(lat: 0, lng: 0),
         throwsA(isA<RepositoryException>().having((e) => e.message, 'message', 'Resposta inválida do servidor.')),
       );
+    });
+  });
+
+  group('sendFeedback', () {
+    const feedback = RegionFeedback(FeedbackCategory.lighting, 'Rua escura');
+
+    test('posts the feedback to the region', () async {
+      final adapter = StubDioAdapter(status: 201, body: {'id': 'f1', 'status': 'PENDENTE'});
+      await HttpRegionRepository(stubDio(adapter)).sendFeedback('3550308 se', feedback);
+
+      expect(adapter.requests.single.method, 'POST');
+      expect(adapter.requests.single.path, '/mapa/regioes/3550308%20se/feedbacks');
+      expect(adapter.requests.single.data, {'categoria': 'ILUMINACAO', 'texto': 'Rua escura'});
+    });
+
+    test('explains 404 and 422', () {
+      expect(
+        HttpRegionRepository(stubDio(StubDioAdapter(status: 404))).sendFeedback('x', feedback),
+        throwsA(isA<RepositoryException>().having((e) => e.message, 'message', 'Região não encontrada.')),
+      );
+      expect(
+        HttpRegionRepository(stubDio(StubDioAdapter(status: 422))).sendFeedback('x', feedback),
+        throwsA(isA<RepositoryException>().having((e) => e.message, 'message', contains('500'))),
+      );
+    });
+
+    test('the fake records what was sent', () async {
+      final repo = FakeRegionRepository();
+      await repo.sendFeedback('r1', feedback);
+      expect(repo.feedbacks, [(regionId: 'r1', feedback: feedback)]);
     });
   });
 

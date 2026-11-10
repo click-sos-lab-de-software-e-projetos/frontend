@@ -13,7 +13,7 @@ RiskRegion _region(String id) =>
     RiskRegion(id: id, name: id, center: (lat: 0, lng: 0), score: 50, color: const Color(0xFFFDD835), radiusMeters: 1);
 
 /// Answers each request with the completer the test chooses.
-class _ManualRegions implements RegionRepository {
+class _ManualRegions extends FakeRegionRepository {
   final calls = <Completer<List<RiskRegion>>>[];
 
   @override
@@ -23,7 +23,7 @@ class _ManualRegions implements RegionRepository {
   }
 }
 
-class _FailingRegions implements RegionRepository {
+class _FailingRegions extends FakeRegionRepository {
   @override
   Future<List<RiskRegion>> fetchNearby({required double lat, required double lng, int radiusMeters = 0}) =>
       Future.error(const RepositoryException('Sem internet.'));

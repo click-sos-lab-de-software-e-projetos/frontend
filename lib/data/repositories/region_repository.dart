@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import '../models/region_feedback.dart';
 import '../models/risk_region.dart';
 import 'repository_exception.dart';
 
@@ -7,6 +8,9 @@ abstract interface class RegionRepository {
   /// Districts whose border is within [radiusMeters] of the point, nearest first.
   /// Throws [UnauthorizedException] without a session.
   Future<List<RiskRegion>> fetchNearby({required double lat, required double lng, int radiusMeters = maxRadius});
+
+  /// Sends a community feedback about the region; it stays pending and does not change the map.
+  Future<void> sendFeedback(String regionId, RegionFeedback feedback);
 
   /// Largest radius the backend accepts.
   static const maxRadius = 10000;
@@ -37,11 +41,34 @@ class HttpRegionRepository implements RegionRepository {
       throw RepositoryException('Resposta inválida do servidor.', cause: e);
     }
   }
+
+  @override
+  Future<void> sendFeedback(String regionId, RegionFeedback feedback) async {
+    try {
+      await _dio.post<void>('/mapa/regioes/${Uri.encodeComponent(regionId)}/feedbacks', data: feedback.toJson());
+    } on DioException catch (e) {
+      switch (e.response?.statusCode) {
+        case 404:
+          throw RepositoryException('Região não encontrada.', cause: e);
+        case 422:
+          throw RepositoryException(
+            'Confira a categoria e o texto (até ${RegionFeedback.maxLength} caracteres).',
+            cause: e,
+          );
+      }
+      throw RepositoryException.fromDio(e, 'Não foi possível enviar o feedback.');
+    }
+  }
 }
 
 /// A few districts around the requested point (demo mode).
 class FakeRegionRepository implements RegionRepository {
   final List<({double lat, double lng})> requests = [];
+  final List<({String regionId, RegionFeedback feedback})> feedbacks = [];
+
+  @override
+  Future<void> sendFeedback(String regionId, RegionFeedback feedback) async =>
+      feedbacks.add((regionId: regionId, feedback: feedback));
 
   static const _districts = [
     ('Sé', 0.0, 0.0, 82),

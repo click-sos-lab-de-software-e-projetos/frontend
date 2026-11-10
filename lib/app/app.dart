@@ -8,11 +8,10 @@ import '../data/models/user_profile.dart';
 import '../data/repositories/alert_repository.dart';
 import '../data/repositories/auth_repository.dart';
 import '../data/repositories/contact_repository.dart';
-import '../data/repositories/occurrence_repository.dart';
+import '../data/repositories/region_repository.dart';
 import '../features/auth/auth_controller.dart';
 import '../features/contacts/contacts_controller.dart';
 import '../features/map/map_controller.dart';
-import '../features/map/occurrences_controller.dart';
 import '../features/profile/profile_controller.dart';
 import '../features/settings/sos_settings_controller.dart';
 import '../features/sos/sos_controller.dart';
@@ -38,8 +37,8 @@ class AlertaApp extends StatelessWidget {
         Provider<WhatsAppService>.value(value: d.whatsApp),
         Provider<AuthRepository>.value(value: d.repositories.auth),
         Provider<ContactRepository>.value(value: d.repositories.contacts),
-        Provider<OccurrenceRepository>.value(value: d.repositories.occurrences),
         Provider<AlertRepository>.value(value: d.repositories.alerts),
+        Provider<RegionRepository>.value(value: d.repositories.regions),
         ChangeNotifierProvider(create: (c) => AuthController(c.read<AuthRepository>(), c.read<Session>())),
         ChangeNotifierProvider(
           create: (c) => ProfileController(UserProfile.empty, c.read<Session>())..load(c.read<AuthRepository>()),
@@ -49,11 +48,8 @@ class AlertaApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(create: (_) => SosSettingsController()),
         ChangeNotifierProvider(
-          create: (c) => OccurrencesController(c.read<OccurrenceRepository>()),
-        ),
-        ChangeNotifierProvider(
           create: (c) => MapController(
-            regions: d.repositories.regions,
+            regions: c.read<RegionRepository>(),
             location: c.read<LocationService>(),
             session: c.read<Session>(),
           ),

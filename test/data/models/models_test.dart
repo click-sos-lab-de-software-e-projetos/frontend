@@ -1,7 +1,7 @@
 import 'dart:ui';
 
 import 'package:alerta_seguro/data/models/contact.dart';
-import 'package:alerta_seguro/data/models/occurrence_report.dart';
+import 'package:alerta_seguro/data/models/region_feedback.dart';
 import 'package:alerta_seguro/data/models/risk_region.dart';
 import 'package:alerta_seguro/data/models/sos_alert.dart';
 import 'package:alerta_seguro/data/models/sos_settings.dart';
@@ -66,22 +66,6 @@ void main() {
       expect(contact.initial, 'A');
       expect(contact.copyWith(name: '  ').initial, '?');
       expect(contact.copyWith(name: 'ze').initial, 'Z');
-    });
-  });
-
-  group('OccurrenceReport', () {
-    test('serializes datetime as UTC ISO-8601 and round-trips', () {
-      final r = OccurrenceReport(
-        address: 'Rua A',
-        lat: 1,
-        lng: 2,
-        type: 'Outro',
-        dateTime: DateTime(2026, 10, 21, 22, 30),
-      );
-      expect(r.toJson()['datetime'], DateTime(2026, 10, 21, 22, 30).toUtc().toIso8601String());
-      expect(r.toJson()['datetime'], endsWith('Z'));
-      expect(OccurrenceReport.fromJson(r.toJson()), r);
-      expect(r.copyWith(address: 'B').address, 'B');
     });
   });
 
@@ -160,5 +144,22 @@ void main() {
       RiskBand.high,
       RiskBand.high,
     ]);
+  });
+
+  group('RegionFeedback', () {
+    test('sends the API category and the trimmed text, omitting it when empty', () {
+      expect(
+        const RegionFeedback(FeedbackCategory.lighting, '  Rua escura  ').toJson(),
+        {'categoria': 'ILUMINACAO', 'texto': 'Rua escura'},
+      );
+      expect(const RegionFeedback(FeedbackCategory.lowPolicing, '  ').toJson(), {'categoria': 'POLICIAMENTO'});
+    });
+
+    test('"Outro" needs a text and the text has at most 500 characters', () {
+      expect(const RegionFeedback(FeedbackCategory.other, ' ').error, RegionFeedback.otherNeedsText);
+      expect(RegionFeedback(FeedbackCategory.robbery, 'x' * 501).error, RegionFeedback.tooLong);
+      expect(RegionFeedback(FeedbackCategory.robbery, 'x' * 500).error, isNull);
+      expect(const RegionFeedback(FeedbackCategory.other, 'Buraco').error, isNull);
+    });
   });
 }

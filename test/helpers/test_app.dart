@@ -8,7 +8,6 @@ import 'package:alerta_seguro/data/models/contact.dart';
 import 'package:alerta_seguro/data/repositories/alert_repository.dart';
 import 'package:alerta_seguro/data/repositories/auth_repository.dart';
 import 'package:alerta_seguro/data/repositories/contact_repository.dart';
-import 'package:alerta_seguro/data/repositories/occurrence_repository.dart';
 import 'package:alerta_seguro/data/repositories/region_repository.dart';
 import 'package:alerta_seguro/data/repositories/repositories.dart';
 import 'package:flutter/material.dart';
@@ -35,7 +34,6 @@ class TestDeps {
   final session = Session();
   final auth = FakeAuthRepository();
   final ContactRepository contacts;
-  final occurrences = FakeOccurrenceRepository();
   final alerts = FakeAlertRepository();
   final FakeRegionRepository regions;
   final launched = <Uri>[];
@@ -43,8 +41,7 @@ class TestDeps {
 
   AppDependencies build() => AppDependencies(
         session: session,
-        repositories:
-            Repositories(auth: auth, contacts: contacts, occurrences: occurrences, alerts: alerts, regions: regions),
+        repositories: Repositories(auth: auth, contacts: contacts, alerts: alerts, regions: regions),
         location: location ?? FakeLocationService(),
         whatsApp: WhatsAppService(
           launcher: (uri) async {
