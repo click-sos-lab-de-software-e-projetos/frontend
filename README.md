@@ -18,7 +18,7 @@ contatos de confiança via WhatsApp.
 | 5 | Perfil | `lib/features/profile/profile_screen.dart` |
 | 6 | Login | `lib/features/auth/login_screen.dart` |
 | 7 | Configurações de perfil | `lib/features/profile/edit_profile_screen.dart` (+ `change_password_screen.dart`) |
-| 8 | Registrar contato de confiança | `lib/features/contacts/add_contact_screen.dart` |
+| 8 | Registrar / editar contato de confiança | `lib/features/contacts/add_contact_screen.dart` |
 | — | Cadastro | `lib/features/auth/register_screen.dart` |
 
 ## Stack
@@ -150,6 +150,7 @@ O que já usa a API:
 - Mapa: um círculo por distrito, com centro, raio e cor (`cor_hex`) da API; tocar mostra nome, score e faixa (Baixo < 34, Médio 34–66, Alto ≥ 67). A rota exige login: deslogado, o mapa fica sem círculos e pede para entrar. Ao parar de mover a câmera, recarrega se o centro andou mais de 2 km.
 - O mapa nunca pede permissão de localização (MAPM-03): usa a posição só se ela já foi liberada (ex.: pelo S.O.S); senão centraliza na Praça da Sé.
 - Feedback comunitário (MAP-04): no cartão do distrito, "Enviar feedback" abre uma folha com a categoria (Iluminação, Assalto, Assédio, Pouco movimento, Falta de policiamento, Outro) e um texto opcional de até 500 caracteres (obrigatório em "Outro"). O relato fica pendente de análise e não muda o score nem a cor do mapa.
+- Contatos: tocar no contato no Perfil abre "Editar contato" (nome, telefone e "Remover contato", com confirmação). Trocar o telefone de quem já aceitou ou recusou pede confirmação, porque o consentimento é pedido de novo e o contato não recebe alertas até aceitar.
 - Configurações de perfil: salva nome e telefone (E.164) na conta, enviando só o que mudou. O e-mail aparece só para leitura. "Trocar senha" exige a senha atual, a nova (mín. 8) e a confirmação; senha atual errada mostra "Senha atual incorreta.".
 
 ## Testes e análise

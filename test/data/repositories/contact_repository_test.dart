@@ -103,6 +103,19 @@ void main() {
       expect(await repo.list(), hasLength(3));
     });
 
+    test('a new phone clears consent and refusal, a new name keeps them', () async {
+      final repo = FakeContactRepository([
+        Contact(id: 'ok', name: 'O', phone: '+5511900000001', consentedAt: DateTime.utc(2026)),
+        Contact(id: 'no', name: 'N', phone: '+5511900000002', refusedAt: DateTime.utc(2026)),
+      ]);
+
+      expect((await repo.update('ok', name: 'Olga')).hasConsent, isTrue);
+      expect((await repo.update('ok', phone: '+5511900000001')).hasConsent, isTrue);
+      final moved = await repo.update('ok', phone: '+5511911111111');
+      expect((moved.name, moved.consentStatus), ('Olga', ConsentStatus.pending));
+      expect((await repo.update('no', phone: '+5511922222222')).consentStatus, ConsentStatus.pending);
+    });
+
     test('requestConsentLink returns a link for pending contacts only', () async {
       final repo = FakeContactRepository([
         const Contact(id: 'p', name: 'P', phone: '+1'),

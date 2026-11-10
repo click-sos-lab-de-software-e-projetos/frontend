@@ -61,6 +61,20 @@ class ContactsController extends ChangeNotifier {
     _replace(await _repository.update(id, alertEnabled: enabled));
   }
 
+  /// Sends only what differs ([phone] in E.164); no change, no request.
+  /// A new phone makes the server ask for consent again.
+  /// Throws [RepositoryException] on failure.
+  Future<void> edit(String id, {required String name, required String phone}) async {
+    final current = _contacts.firstWhere((c) => c.id == id);
+    final newName = name.trim();
+    final newPhone = phone.trim();
+    if (newName.isEmpty || newPhone.isEmpty) throw ArgumentError('name and phone are required');
+    final changedName = newName == current.name ? null : newName;
+    final changedPhone = newPhone == current.phone ? null : newPhone;
+    if (changedName == null && changedPhone == null) return;
+    _replace(await _repository.update(id, name: changedName, phone: changedPhone));
+  }
+
   Future<void> remove(String id) async {
     await _repository.delete(id);
     _contacts = _contacts.where((c) => c.id != id).toList(growable: false);

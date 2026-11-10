@@ -5,6 +5,18 @@ import 'package:alerta_seguro/data/repositories/repository_exception.dart';
 import 'package:alerta_seguro/features/contacts/contacts_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+class _Spy extends FakeContactRepository {
+  _Spy(super.contacts);
+
+  final calls = <({String? name, String? phone})>[];
+
+  @override
+  Future<Contact> update(String id, {String? name, String? phone, bool? alertEnabled}) {
+    calls.add((name: name, phone: phone));
+    return super.update(id, name: name, phone: phone, alertEnabled: alertEnabled);
+  }
+}
+
 class _FailingList extends FakeContactRepository {
   @override
   Future<List<Contact>> list() => Future.error(const RepositoryException('offline'));
@@ -79,6 +91,31 @@ void main() {
     await c.setAlertEnabled('a', false);
     await c.setAlertEnabled('b', true);
     expect(c.activeContacts.map((e) => e.id), ['c', 'd', 'b']);
+  });
+
+  test('edit sends only the changed fields and notifies', () async {
+    final repo = _Spy(const [a, b]);
+    final c = ContactsController(repo, Session()..start('t'));
+    await pumpEventQueue();
+    var notified = 0;
+    c.addListener(() => notified++);
+
+    await c.edit('a', name: ' Ana ', phone: '+1');
+    await c.edit('b', name: 'B', phone: ' +5511900000002 ');
+
+    expect(repo.calls, [(name: 'Ana', phone: null), (name: null, phone: '+5511900000002')]);
+    expect(c.contacts.map((e) => (e.name, e.phone)), [('Ana', '+1'), ('B', '+5511900000002')]);
+    expect(notified, 2);
+  });
+
+  test('edit without changes does not call the API', () async {
+    final repo = _Spy(const [a]);
+    final c = ContactsController(repo, Session()..start('t'));
+    await pumpEventQueue();
+
+    await c.edit('a', name: 'A ', phone: '+1');
+
+    expect(repo.calls, isEmpty);
   });
 
   test('remove deletes the contact', () async {

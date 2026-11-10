@@ -1,6 +1,9 @@
+import 'package:alerta_seguro/data/fakes/demo_seed.dart';
 import 'package:alerta_seguro/data/models/contact.dart';
 import 'package:alerta_seguro/data/repositories/contact_repository.dart';
+import 'package:alerta_seguro/data/repositories/repository_exception.dart';
 import 'package:alerta_seguro/features/auth/auth_controller.dart';
+import 'package:alerta_seguro/features/contacts/add_contact_screen.dart';
 import 'package:alerta_seguro/features/profile/profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -100,6 +103,105 @@ void main() {
     expect(find.text('+2 · Consentimento confirmado'), findsOneWidget);
     expect(find.byTooltip('Enviar pedido de consentimento'), findsOneWidget);
   });
+
+  group('editing', () {
+    Future<TestDeps> open(WidgetTester tester, String name, {ContactRepository? repository}) async {
+      final deps = await pumpTestApp(
+        tester,
+        home: const Scaffold(body: ProfileScreen()),
+        deps: TestDeps(loggedIn: true, repository: repository),
+      );
+      await tester.tap(find.text(name));
+      await tester.pumpAndSettle();
+      return deps;
+    }
+
+    Future<void> save(WidgetTester tester) async {
+      await tester.tap(find.text('Salvar'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('tapping a contact opens it filled and saves a new name', (tester) async {
+      final deps = await open(tester, 'Contato Exemplo 2');
+
+      expect(find.text('Editar contato'), findsOneWidget);
+      expect(find.widgetWithText(TextFormField, '+5511900000002'), findsOneWidget);
+      await tester.enterText(find.widgetWithText(TextFormField, 'Contato Exemplo 2'), 'Bia');
+      await save(tester);
+
+      expect(find.byType(AddContactScreen), findsNothing);
+      expect(find.text('Bia'), findsOneWidget);
+      expect((await deps.contacts.list()).last.name, 'Bia');
+    });
+
+    testWidgets('a new phone for a contact who answered asks before saving', (tester) async {
+      final deps = await open(tester, 'Contato Exemplo 1');
+
+      await tester.enterText(find.widgetWithText(TextFormField, '+5511900000001'), '(11) 91111-1111');
+      await save(tester);
+      expect(find.text(AddContactScreen.reconsentWarning), findsOneWidget);
+      await tester.tap(find.text('Cancelar'));
+      await tester.pumpAndSettle();
+      expect(find.byType(AddContactScreen), findsOneWidget);
+      expect((await deps.contacts.list()).first.phone, '+5511900000001');
+
+      await save(tester);
+      await tester.tap(find.text('Continuar'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AddContactScreen), findsNothing);
+      expect(find.text('+5511911111111 · Aguardando consentimento'), findsOneWidget);
+    });
+
+    testWidgets('a pending contact gets the new phone without asking', (tester) async {
+      final deps = await open(tester, 'Contato Exemplo 2');
+
+      await tester.enterText(find.widgetWithText(TextFormField, '+5511900000002'), '(11) 92222-2222');
+      await save(tester);
+
+      expect(find.text(AddContactScreen.reconsentWarning), findsNothing);
+      expect((await deps.contacts.list()).last.phone, '+5511922222222');
+    });
+
+    testWidgets('removing asks for confirmation', (tester) async {
+      final deps = await open(tester, 'Contato Exemplo 2');
+
+      await tester.tap(find.text('Remover contato'));
+      await tester.pumpAndSettle();
+      expect(find.text('Remover Contato Exemplo 2?'), findsOneWidget);
+      await tester.tap(find.text('Cancelar'));
+      await tester.pumpAndSettle();
+      expect(await deps.contacts.list(), hasLength(2));
+
+      await tester.tap(find.text('Remover contato'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Remover'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AddContactScreen), findsNothing);
+      expect(find.text('Contato Exemplo 2'), findsNothing);
+      expect((await deps.contacts.list()).map((c) => c.id), ['demo-1']);
+    });
+
+    testWidgets('a failed removal keeps the screen and explains', (tester) async {
+      await open(tester, 'Contato Exemplo 2', repository: _FailingDelete());
+
+      await tester.tap(find.text('Remover contato'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Remover'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AddContactScreen), findsOneWidget);
+      expect(find.text('Sem conexão.'), findsOneWidget);
+    });
+  });
+}
+
+class _FailingDelete extends FakeContactRepository {
+  _FailingDelete() : super(DemoSeed.contacts);
+
+  @override
+  Future<void> delete(String id) async => throw const RepositoryException('Sem conexão.');
 }
 
 class _CountingRepo extends FakeContactRepository {

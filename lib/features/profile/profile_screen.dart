@@ -138,38 +138,42 @@ class ProfileScreen extends StatelessWidget {
                   for (final c in contacts)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
-                      child: AppCard(
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              backgroundColor: AppColors.cyan.withValues(alpha: .15),
-                              child: Text(c.initial, style: const TextStyle(color: AppColors.cyan)),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(c.name, style: const TextStyle(fontWeight: FontWeight.w700)),
-                                  Text(
-                                    '${c.phone} · ${_consentLabel(c.consentStatus)}',
-                                    style: const TextStyle(fontSize: 11, color: Colors.white54),
-                                  ),
-                                ],
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => _go(context, AddContactScreen(contact: c)),
+                        child: AppCard(
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                backgroundColor: AppColors.cyan.withValues(alpha: .15),
+                                child: Text(c.initial, style: const TextStyle(color: AppColors.cyan)),
                               ),
-                            ),
-                            if (c.hasConsent)
-                              IconButton(
-                                icon: const Icon(Icons.chat, color: AppColors.cyan),
-                                onPressed: () => context.read<WhatsAppService>().open(c.phone, 'Olá!'),
-                              )
-                            else
-                              IconButton(
-                                tooltip: 'Enviar pedido de consentimento',
-                                icon: const Icon(Icons.send, color: AppColors.cyan),
-                                onPressed: () => _sendConsentRequest(context, c),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(c.name, style: const TextStyle(fontWeight: FontWeight.w700)),
+                                    Text(
+                                      '${c.phone} · ${_consentLabel(c.consentStatus)}',
+                                      style: const TextStyle(fontSize: 11, color: Colors.white54),
+                                    ),
+                                  ],
+                                ),
                               ),
-                          ],
+                              if (c.hasConsent)
+                                IconButton(
+                                  icon: const Icon(Icons.chat, color: AppColors.cyan),
+                                  onPressed: () => context.read<WhatsAppService>().open(c.phone, 'Olá!'),
+                                )
+                              else
+                                IconButton(
+                                  tooltip: 'Enviar pedido de consentimento',
+                                  icon: const Icon(Icons.send, color: AppColors.cyan),
+                                  onPressed: () => _sendConsentRequest(context, c),
+                                ),
+                            ],
+                          ),
                         ),
                       ),
                     ),

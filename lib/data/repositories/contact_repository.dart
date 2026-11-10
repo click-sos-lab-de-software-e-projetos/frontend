@@ -118,7 +118,12 @@ class FakeContactRepository implements ContactRepository {
     if (alertEnabled == true && !_contacts[i].alertEnabled && _active >= maxActiveContacts) {
       throw const RepositoryException(_limitMessage);
     }
-    return _contacts[i] = _contacts[i].copyWith(name: name, phone: phone, alertEnabled: alertEnabled);
+    final current = _contacts[i];
+    final updated = current.copyWith(name: name, phone: phone, alertEnabled: alertEnabled);
+    // Like the backend, a new phone needs a new consent.
+    return _contacts[i] = phone == null || phone == current.phone
+        ? updated
+        : Contact(id: id, name: updated.name, phone: updated.phone, alertEnabled: updated.alertEnabled);
   }
 
   @override
