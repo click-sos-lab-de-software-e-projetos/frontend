@@ -1,9 +1,7 @@
 import 'package:alerta_seguro/core/services/location_service.dart';
-import 'package:alerta_seguro/features/map/occurrences_controller.dart';
 import 'package:alerta_seguro/features/occurrence/occurrence_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:provider/provider.dart';
 
 import '../../helpers/test_app.dart';
 
@@ -67,7 +65,5 @@ void main() {
     expect(report.type, 'Assédio');
     expect(report.lat, -23.5);
     expect(report.toJson()['datetime'], matches(RegExp(r'^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$')));
-    final plotted = tester.element(find.text('abrir')).read<OccurrencesController>().occurrences;
-    expect(plotted.single.type, 'Assédio');
   });
 }

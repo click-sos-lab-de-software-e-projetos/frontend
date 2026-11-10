@@ -11,6 +11,7 @@ import '../data/repositories/contact_repository.dart';
 import '../data/repositories/occurrence_repository.dart';
 import '../features/auth/auth_controller.dart';
 import '../features/contacts/contacts_controller.dart';
+import '../features/map/map_controller.dart';
 import '../features/map/occurrences_controller.dart';
 import '../features/profile/profile_controller.dart';
 import '../features/settings/sos_settings_controller.dart';
@@ -48,7 +49,14 @@ class AlertaApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(create: (_) => SosSettingsController()),
         ChangeNotifierProvider(
-          create: (c) => OccurrencesController(c.read<OccurrenceRepository>(), c.read<LocationService>()),
+          create: (c) => OccurrencesController(c.read<OccurrenceRepository>()),
+        ),
+        ChangeNotifierProvider(
+          create: (c) => MapController(
+            regions: d.repositories.regions,
+            location: c.read<LocationService>(),
+            session: c.read<Session>(),
+          ),
         ),
         ChangeNotifierProvider(
           create: (c) => SosController(

@@ -1,6 +1,8 @@
+import 'dart:ui';
+
 import 'package:alerta_seguro/data/models/contact.dart';
-import 'package:alerta_seguro/data/models/occurrence.dart';
 import 'package:alerta_seguro/data/models/occurrence_report.dart';
+import 'package:alerta_seguro/data/models/risk_region.dart';
 import 'package:alerta_seguro/data/models/sos_alert.dart';
 import 'package:alerta_seguro/data/models/sos_settings.dart';
 import 'package:alerta_seguro/data/models/user_profile.dart';
@@ -64,19 +66,6 @@ void main() {
       expect(contact.initial, 'A');
       expect(contact.copyWith(name: '  ').initial, '?');
       expect(contact.copyWith(name: 'ze').initial, 'Z');
-    });
-  });
-
-  group('Occurrence', () {
-    test('parses ints as doubles and defaults severity/type', () {
-      final o = Occurrence.fromJson(const {'lat': -23, 'lng': -46.5});
-      expect(o, const Occurrence(lat: -23.0, lng: -46.5, severity: 1, type: ''));
-    });
-
-    test('round-trips through JSON', () {
-      const o = Occurrence(lat: 1.5, lng: 2.5, severity: 3, type: 'Assédio');
-      expect(Occurrence.fromJson(o.toJson()), o);
-      expect(o.copyWith(severity: 2).severity, 2);
     });
   });
 
@@ -144,5 +133,32 @@ void main() {
       expect(SosSettings.fromJson(s.toJson()), s);
       expect(s.copyWith(silentAlert: false).silentAlert, isFalse);
     });
+  });
+
+  test('RiskRegion bands follow the backend thresholds', () {
+    RiskBand band(int score) => RiskRegion(
+          id: 'x',
+          name: 'X',
+          center: (lat: 0, lng: 0),
+          score: score,
+          color: const Color(0xFF000000),
+          radiusMeters: 1,
+        ).band;
+
+    expect([
+      band(0),
+      band(33),
+      band(34),
+      band(66),
+      band(67),
+      band(100),
+    ], [
+      RiskBand.low,
+      RiskBand.low,
+      RiskBand.medium,
+      RiskBand.medium,
+      RiskBand.high,
+      RiskBand.high,
+    ]);
   });
 }

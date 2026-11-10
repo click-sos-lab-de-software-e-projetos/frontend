@@ -1,7 +1,7 @@
 # Alerta Seguro — Frontend (Flutter)
 
-Aplicativo mobile de segurança colaborativa: **mapa de calor** de ocorrências
-reportadas pela comunidade + **botão SOS** que envia sua localização para
+Aplicativo mobile de segurança colaborativa: **mapa de risco** por distrito
+(dados criminais da SSP-SP) + **botão SOS** que envia sua localização para
 contatos de confiança via WhatsApp.
 
 > Projeto acadêmico — Laboratório de Software e Projetos.
@@ -11,7 +11,7 @@ contatos de confiança via WhatsApp.
 
 | # | Tela | Arquivo |
 |---|------|---------|
-| 1 | Mapa de calor | `lib/features/map/map_screen.dart` |
+| 1 | Mapa de risco por distrito | `lib/features/map/map_screen.dart` |
 | 2 | Registro de ocorrência | `lib/features/occurrence/occurrence_screen.dart` |
 | 3 | Emergência / SOS (um toque, 5 s para cancelar) | `lib/features/sos/sos_screen.dart` |
 | 4 | Configurar SOS | `lib/features/settings/settings_screen.dart` |
@@ -105,6 +105,9 @@ MAPS_API_KEY=SUA_CHAVE
 
 > ⚠️ Nunca faça commit da sua chave do Google Maps.
 
+> **MAPM-01:** no Google Cloud, restrinja a chave ao app (pacote + SHA-1 no
+> Android, bundle id no iOS, domínio na web) e só às APIs do Maps que o app usa.
+
 ### Backend
 
 Por padrão o app roda em **modo demonstração** (`USE_FAKE_API=true`): os
@@ -136,12 +139,15 @@ O que já usa a API:
 | Mensagem de socorro (Ajustes) | `PATCH /auth/me` (`mensagem_sos`, até 255; vazio volta à padrão) |
 | Contatos de confiança (máx. 3 ativos) | `GET/POST /contatos`, `PATCH/DELETE /contatos/{id}` |
 | Alerta SOS | `POST /sos/alertas` (`latitude`, `longitude`), `GET /sos/alertas/{id}` |
+| Mapa de risco | `GET /mapa/regioes?latitude&longitude&raio=10000` |
 
 - O token JWT fica no armazenamento seguro do aparelho (`SecureTokenStore`): ao abrir o app, a sessão é restaurada na hora e o perfil é buscado em `GET /auth/me` em segundo plano. Ele vale 24 h; quando a API responde 401, a sessão é encerrada e o token apagado. Falha de rede mantém o token. No modo demo (`USE_FAKE_API=true`) o token fica só na memória.
 - S.O.S: um toque inicia uma contagem de 5 s com "Cancelar"; depois o app lê a localização e cria o alerta sem `mensagem` — o backend usa a mensagem salva em Ajustes ou a padrão. O status é consultado a cada 3 s (até 2 min) e o painel mostra enviando, enviado, erro ou "ainda enviando".
 - Antes do primeiro pedido de localização o app explica o motivo. Com permissão negada ou GPS desligado, oferece abrir as configurações ou enviar só pelo WhatsApp (sem link). O WhatsApp (`wa.me`) também fica como opção secundária no painel de status.
 - O backend exige ao menos um contato ativo **com consentimento**; sem isso, a mensagem de erro da API é exibida.
-- Mapa e ocorrências (`/occurrences`) ainda não existem no backend: use o modo demonstração para vê-los.
+- Mapa: um círculo por distrito, com centro, raio e cor (`cor_hex`) da API; tocar mostra nome, score e faixa (Baixo < 34, Médio 34–66, Alto ≥ 67). A rota exige login: deslogado, o mapa fica sem círculos e pede para entrar. Ao parar de mover a câmera, recarrega se o centro andou mais de 2 km.
+- O mapa nunca pede permissão de localização (MAPM-03): usa a posição só se ela já foi liberada (ex.: pelo S.O.S); senão centraliza na Praça da Sé.
+- Registro de ocorrência (`POST /occurrences`) ainda não existe no backend; a Tarefa 6 troca pelo feedback por região.
 - A edição de perfil continua só local (não há rota de atualização).
 
 ## Testes e análise
@@ -185,7 +191,6 @@ plans/                        # planos de implementação/refatoração
 
 | Método | Rota | Corpo / parâmetros | Resposta |
 |--------|------|--------------------|----------|
-| `GET`  | `/occurrences` | `?lat&lng&radius` (metros) | `[{ lat, lng, severity (1-3), type }]` |
 | `POST` | `/occurrences` | `{ address, lat, lng, type, datetime }` (`datetime` em ISO-8601 UTC) | — |
 | `POST` | `/alerts` | `{ lat, lng, message, userId }` | — |
 | `POST` | `/auth/login` | `{ email, password }` | objeto do usuário/token |
