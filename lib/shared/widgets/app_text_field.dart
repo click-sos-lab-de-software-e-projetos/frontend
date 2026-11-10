@@ -10,6 +10,7 @@ class AppTextField extends StatelessWidget {
     this.keyboardType,
     this.obscure = false,
     this.validator,
+    this.enabled = true,
   });
 
   final String hint;
@@ -17,6 +18,7 @@ class AppTextField extends StatelessWidget {
   final TextInputType? keyboardType;
   final bool obscure;
   final FormFieldValidator<String>? validator;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) => TextFormField(
@@ -24,6 +26,7 @@ class AppTextField extends StatelessWidget {
         keyboardType: keyboardType,
         obscureText: obscure,
         validator: validator,
+        enabled: enabled,
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),

@@ -22,17 +22,19 @@ class TestDeps {
     this.location,
     bool loggedIn = false,
     FakeRegionRepository? regions,
-  })  : contacts = repository ?? FakeContactRepository(contacts ?? DemoSeed.contacts),
+    FakeAuthRepository? auth,
+  })  : auth = auth ?? FakeAuthRepository(),
+        contacts = repository ?? FakeContactRepository(contacts ?? DemoSeed.contacts),
         regions = regions ?? FakeRegionRepository() {
     // The fake auth must know the account too: the app fetches /auth/me for a restored session.
     if (loggedIn) {
-      auth.login(email: FakeAuthRepository.demoProfile.email, password: 'test');
+      this.auth.login(email: FakeAuthRepository.demoProfile.email, password: 'test');
       session.start('test-token');
     }
   }
 
   final session = Session();
-  final auth = FakeAuthRepository();
+  final FakeAuthRepository auth;
   final ContactRepository contacts;
   final alerts = FakeAlertRepository();
   final FakeRegionRepository regions;

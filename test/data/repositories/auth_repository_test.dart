@@ -89,6 +89,45 @@ void main() {
         throwsA(isA<RepositoryException>().having((e) => e.message, 'message', contains('255'))),
       );
     });
+
+    test('updateProfile patches only the given fields and returns the saved profile', () async {
+      final adapter = StubDioAdapter(body: {...user, 'nome_completo': 'Bia'});
+      final saved = await HttpAuthRepository(stubDio(adapter)).updateProfile(name: 'Bia');
+
+      expect(saved.name, 'Bia');
+      expect(adapter.requests.single.path, '/auth/me');
+      expect(adapter.requests.single.method, 'PATCH');
+      expect(adapter.requests.single.data, {'nome_completo': 'Bia'});
+
+      final both = StubDioAdapter(body: user);
+      await HttpAuthRepository(stubDio(both)).updateProfile(name: 'Ana', phone: '+5511911111111');
+      expect(both.requests.single.data, {'nome_completo': 'Ana', 'telefone_pessoal': '+5511911111111'});
+    });
+
+    test('updateProfile explains a 422', () {
+      final repo = HttpAuthRepository(stubDio(StubDioAdapter(status: 422)));
+      expect(
+        repo.updateProfile(phone: '+1'),
+        throwsA(isA<RepositoryException>().having((e) => e.message, 'message', contains('telefone'))),
+      );
+    });
+
+    test('changePassword posts senha_atual/senha_nova', () async {
+      final adapter = StubDioAdapter(status: 204);
+      await HttpAuthRepository(stubDio(adapter)).changePassword(current: 'old', next: '12345678');
+
+      expect(adapter.requests.single.path, '/auth/me/senha');
+      expect(adapter.requests.single.method, 'POST');
+      expect(adapter.requests.single.data, {'senha_atual': 'old', 'senha_nova': '12345678'});
+    });
+
+    test('changePassword maps 400 to WrongPasswordException', () {
+      final repo = HttpAuthRepository(stubDio(StubDioAdapter(status: 400)));
+      expect(
+        repo.changePassword(current: 'x', next: '12345678'),
+        throwsA(isA<WrongPasswordException>().having((e) => e.message, 'message', 'Senha atual incorreta.')),
+      );
+    });
   });
 
   group('FakeAuthRepository', () {
@@ -124,6 +163,29 @@ void main() {
       expect((await repo.updateSosMessage('Me liga')).sosMessage, 'Me liga');
       expect((await repo.me()).sosMessage, 'Me liga');
       expect(FakeAuthRepository().updateSosMessage('x'), throwsA(isA<UnauthorizedException>()));
+    });
+
+    test('updateProfile is kept for the logged account', () async {
+      final repo = FakeAuthRepository();
+      await repo.register(name: 'Ana', email: 'a@x.com', phone: '+5511900000000', password: '12345678');
+      await repo.login(email: 'a@x.com', password: '12345678');
+
+      final saved = await repo.updateProfile(phone: '+5511911111111');
+      expect((saved.name, saved.phone), ('Ana', '+5511911111111'));
+      expect((await repo.updateProfile(name: 'Bia')).name, 'Bia');
+      expect((await repo.me()).phone, '+5511911111111');
+      expect(FakeAuthRepository().updateProfile(name: 'x'), throwsA(isA<UnauthorizedException>()));
+    });
+
+    test('changePassword checks the current password of registered accounts', () async {
+      final repo = FakeAuthRepository();
+      await repo.register(name: 'Ana', email: 'a@x.com', phone: '+1', password: '12345678');
+      await repo.login(email: 'a@x.com', password: '12345678');
+
+      expect(repo.changePassword(current: 'wrong', next: 'abcdefgh'), throwsA(isA<WrongPasswordException>()));
+      await repo.changePassword(current: '12345678', next: 'abcdefgh');
+      expect(repo.login(email: 'a@x.com', password: '12345678'), throwsA(isA<InvalidCredentialsException>()));
+      expect(await repo.login(email: 'a@x.com', password: 'abcdefgh'), isNotEmpty);
     });
 
     test('me without login is unauthorized', () {

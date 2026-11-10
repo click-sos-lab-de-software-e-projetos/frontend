@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../../core/network/session.dart';
+import '../../core/utils/phone.dart';
 import '../../data/models/user_profile.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../data/repositories/repository_exception.dart';
@@ -42,8 +43,15 @@ class ProfileController extends ChangeNotifier {
   Future<void> saveSosMessage(AuthRepository auth, String message) async =>
       replace(await auth.updateSosMessage(message.trim()));
 
-  void update({String? name, String? email, String? phone}) =>
-      replace(_profile.copyWith(name: name?.trim(), email: email?.trim(), phone: phone?.trim()));
+  /// Sends only what differs from the current profile; no change, no request.
+  Future<void> saveProfile(AuthRepository auth, {required String name, required String phone}) async {
+    final newName = name.trim();
+    final newPhone = toE164(phone);
+    final changedName = newName == _profile.name ? null : newName;
+    final changedPhone = newPhone == _profile.phone ? null : newPhone;
+    if (changedName == null && changedPhone == null) return;
+    replace(await auth.updateProfile(name: changedName, phone: changedPhone));
+  }
 
   void _onSession() {
     if (!_session!.isActive) replace(UserProfile.empty);

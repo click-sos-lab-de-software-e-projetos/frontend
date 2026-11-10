@@ -14,20 +14,21 @@ class _Me extends FakeAuthRepository {
   Future<UserProfile> me() => result();
 }
 
+class _Spy extends FakeAuthRepository {
+  final calls = <({String? name, String? phone})>[];
+
+  @override
+  Future<UserProfile> updateProfile({String? name, String? phone}) {
+    calls.add((name: name, phone: phone));
+    return super.updateProfile(name: name, phone: phone);
+  }
+}
+
 const _ana = UserProfile(name: 'Ana', email: 'ana@x.com', phone: '+5511900000000', protectionId: 'u1');
 
 void main() {
-  test('starts empty and updates trimmed fields', () {
-    final c = ProfileController();
-    expect(c.profile, UserProfile.empty);
-
-    var notified = 0;
-    c.addListener(() => notified++);
-    c.update(name: ' Ana ', email: 'a@x');
-    expect(c.profile, const UserProfile(name: 'Ana', email: 'a@x', phone: '', protectionId: ''));
-
-    c.update(name: 'Ana'); // no change → no notification
-    expect(notified, 1);
+  test('starts empty', () {
+    expect(ProfileController().profile, UserProfile.empty);
   });
 
   test('replace swaps the whole profile', () {
@@ -94,5 +95,37 @@ void main() {
 
     expect(c.profile.sosMessage, 'Me liga');
     expect((await auth.me()).sosMessage, 'Me liga');
+  });
+
+  group('saveProfile', () {
+    late _Spy auth;
+    setUp(() async {
+      auth = _Spy();
+      await auth.login(email: 'ana@x.com', password: '1');
+    });
+
+    test('sends only the changed fields, trimmed and in E.164', () async {
+      final c = ProfileController(_ana);
+
+      await c.saveProfile(auth, name: ' Ana ', phone: '(11) 91111-1111');
+
+      expect(auth.calls.single, (name: null, phone: '+5511911111111'));
+      expect(c.profile.phone, '+5511911111111');
+    });
+
+    test('keeps the server answer for a new name', () async {
+      final c = ProfileController(_ana);
+
+      await c.saveProfile(auth, name: 'Bia', phone: '+5511900000000');
+
+      expect(auth.calls.single, (name: 'Bia', phone: null));
+      expect(c.profile.name, 'Bia');
+    });
+
+    test('without changes does not call the API', () async {
+      final c = ProfileController(_ana);
+      await c.saveProfile(auth, name: 'Ana ', phone: '11 90000-0000');
+      expect(auth.calls, isEmpty);
+    });
   });
 }
