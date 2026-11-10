@@ -3,26 +3,37 @@ import 'package:provider/provider.dart';
 
 import '../../app/theme.dart';
 import '../../data/models/contact.dart';
-import '../../data/models/sos_settings.dart';
+import '../../data/repositories/auth_repository.dart';
 import '../../data/repositories/repository_exception.dart';
 import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/page_header.dart';
 import '../../shared/widgets/section_label.dart';
 import '../auth/auth_controller.dart';
 import '../contacts/contacts_controller.dart';
+import '../profile/profile_controller.dart';
 import 'sos_settings_controller.dart';
 
 /// TELA 4 — Configurar SOS.
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
+  static const defaultMessageLabel = 'Mensagem padrão do Alerta Seguro';
+  static const maxMessageLength = 255;
+
   Future<void> _editMessage(BuildContext context) async {
-    final settings = context.read<SosSettingsController>();
+    final profile = context.read<ProfileController>();
+    final auth = context.read<AuthRepository>();
+    final messenger = ScaffoldMessenger.of(context);
     final text = await showDialog<String>(
       context: context,
-      builder: (_) => _EditMessageDialog(initial: settings.settings.message),
+      builder: (_) => _EditMessageDialog(initial: profile.profile.sosMessage),
     );
-    if (text != null && text.trim().isNotEmpty) settings.setMessage(text);
+    if (text == null) return;
+    try {
+      await profile.saveSosMessage(auth, text);
+    } on RepositoryException catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+    }
   }
 
   static Future<void> _toggle(BuildContext context, String id, bool enabled) async {
@@ -40,6 +51,7 @@ class SettingsScreen extends StatelessWidget {
     final loggedIn = context.watch<AuthController>().loggedIn;
     final settingsController = context.watch<SosSettingsController>();
     final settings = settingsController.settings;
+    final message = context.watch<ProfileController>().profile.sosMessage;
     return SafeArea(
       child: ListView(
         padding: const EdgeInsets.only(bottom: 20),
@@ -86,24 +98,29 @@ class SettingsScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '"${settings.message} [link do mapa]"',
+                        message.isEmpty ? defaultMessageLabel : '"$message"',
                         style: const TextStyle(fontSize: 13, color: Colors.white70),
+                      ),
+                      const Text(
+                        'Enviada com o link da sua localização quando você toca no S.O.S.',
+                        style: TextStyle(fontSize: 11, color: Colors.white38),
                       ),
                       const Divider(color: Colors.white12),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            '${settings.message.length} / ${SosSettings.maxMessageLength} caracteres',
+                            '${message.length} / $maxMessageLength caracteres',
                             style: const TextStyle(fontSize: 11, color: Colors.white38),
                           ),
-                          GestureDetector(
-                            onTap: () => _editMessage(context),
-                            child: const Text(
-                              'ALTERAR',
-                              style: TextStyle(color: AppColors.cyan, fontSize: 11, fontWeight: FontWeight.w700),
+                          if (loggedIn)
+                            GestureDetector(
+                              onTap: () => _editMessage(context),
+                              child: const Text(
+                                'ALTERAR',
+                                style: TextStyle(color: AppColors.cyan, fontSize: 11, fontWeight: FontWeight.w700),
+                              ),
                             ),
-                          ),
                         ],
                       ),
                     ],
@@ -153,7 +170,12 @@ class _EditMessageDialogState extends State<_EditMessageDialog> {
   Widget build(BuildContext context) => AlertDialog(
         backgroundColor: AppColors.card,
         title: const Text('Mensagem de socorro'),
-        content: TextField(controller: _text, maxLength: SosSettings.maxMessageLength, maxLines: 4),
+        content: TextField(
+          controller: _text,
+          maxLength: SettingsScreen.maxMessageLength,
+          maxLines: 4,
+          decoration: const InputDecoration(hintText: 'Vazio usa a mensagem padrão'),
+        ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
           TextButton(onPressed: () => Navigator.pop(context, _text.text), child: const Text('Salvar')),

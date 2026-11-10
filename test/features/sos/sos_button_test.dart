@@ -3,19 +3,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('fires only after being held for the whole duration', (tester) async {
+  testWidgets('one tap fires once', (tester) async {
     var fired = 0;
-    await tester.pumpWidget(MaterialApp(home: Center(child: SosButton(onTriggered: () => fired++))));
+    await tester.pumpWidget(MaterialApp(home: Center(child: SosButton(onPressed: () => fired++))));
 
-    final gesture = await tester.startGesture(tester.getCenter(find.text('SOS')));
-    for (var i = 0; i < 20; i++) {
-      await tester.pump(const Duration(milliseconds: 100));
-    }
-    expect(fired, 0);
-    for (var i = 0; i < 20; i++) {
-      await tester.pump(const Duration(milliseconds: 100));
-    }
-    await gesture.up();
+    await tester.tap(find.text('SOS'));
+
     expect(fired, 1);
+  });
+
+  testWidgets('shows the given label and ignores taps when disabled', (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: Center(child: SosButton(onPressed: null, label: '3'))));
+
+    await tester.tap(find.text('3'));
+
+    expect(find.text('SOS'), findsNothing);
   });
 }

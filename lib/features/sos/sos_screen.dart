@@ -2,62 +2,106 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../app/theme.dart';
-import '../../core/network/session.dart';
+import '../../core/services/location_service.dart';
 import '../../core/services/whatsapp_service.dart';
 import '../../shared/widgets/app_card.dart';
 import 'sos_controller.dart';
 import 'widgets/sos_button.dart';
+import 'widgets/sos_status_card.dart';
+import 'widgets/whatsapp_sheet.dart';
 
-/// TELA 3 — Emergência (segurar o botão SOS por 3 segundos).
+/// TELA 3 — Emergência: um toque envia o alerta depois de 5 s, que podem ser cancelados.
 class SosScreen extends StatefulWidget {
   const SosScreen({super.key});
+
+  static const privacy = 'Sua localização será enviada só aos seus contatos ativos que aceitaram. '
+      'O alerta fica guardado por 180 dias e depois é anonimizado.';
+  static const whyLocation = 'Para seus contatos saberem onde você está, o alerta leva a sua localização. '
+      'Ela só é lida quando você toca no S.O.S.';
+  static const whatsAppOnly = 'Enviar só pelo WhatsApp';
+
+  static String deniedReason(LocationAccess access) => switch (access) {
+        LocationAccess.serviceOff => 'A localização do aparelho está desligada. Ligue-a para enviar o alerta.',
+        LocationAccess.deniedForever =>
+          'O app não tem permissão de localização. Libere nas configurações para enviar o alerta.',
+        _ => 'Sem permissão de localização o alerta não pode ser enviado pelo servidor.',
+      };
 
   @override
   State<SosScreen> createState() => _SosScreenState();
 }
 
 class _SosScreenState extends State<SosScreen> {
-  Future<void> _fire() async {
-    final whatsApp = context.read<WhatsAppService>();
-    final messenger = ScaffoldMessenger.of(context);
-    final loggedIn = context.read<Session>().isActive;
-    final outcome = await context.read<SosController>().trigger();
+  Future<void> _onTap() async {
+    final sos = context.read<SosController>();
+    final location = context.read<LocationService>();
+    var access = await location.checkAccess();
     if (!mounted) return;
-    if (outcome.alertError != null) messenger.showSnackBar(SnackBar(content: Text(outcome.alertError!)));
-    if (outcome.targets.isEmpty) {
-      if (loggedIn) messenger.showSnackBar(const SnackBar(content: Text('Ative ao menos um contato em Ajustes.')));
-      return;
+    if (access == LocationAccess.canAsk) {
+      if (!await _explainLocation()) return;
+      access = await location.requestAccess();
+      if (!mounted) return;
     }
-    // WhatsApp requires a user tap to send each message.
-    await showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: AppColors.card,
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Enviar alerta por WhatsApp', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 12),
-            for (final c in outcome.targets)
-              ListTile(
-                leading: const Icon(Icons.send, color: AppColors.cyan),
-                title: Text(c.name),
-                subtitle: Text(c.phone),
-                onTap: () => whatsApp.open(c.phone, outcome.message),
-              ),
+    if (access == LocationAccess.granted) {
+      await sos.start();
+    } else {
+      await _locationUnavailable(access);
+    }
+  }
+
+  Future<bool> _explainLocation() async =>
+      await showDialog<bool>(
+        context: context,
+        builder: (c) => AlertDialog(
+          backgroundColor: AppColors.card,
+          title: const Text('Por que a localização?'),
+          content: const Text(SosScreen.whyLocation),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Agora não')),
+            TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('Continuar')),
           ],
         ),
+      ) ??
+      false;
+
+  Future<void> _locationUnavailable(LocationAccess access) async {
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (c) => AlertDialog(
+        backgroundColor: AppColors.card,
+        title: const Text('Localização indisponível'),
+        content: Text(SosScreen.deniedReason(access)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, 'settings'), child: const Text('Abrir configurações')),
+          TextButton(onPressed: () => Navigator.pop(c, 'whatsapp'), child: const Text(SosScreen.whatsAppOnly)),
+        ],
       ),
+    );
+    if (!mounted) return;
+    if (choice == 'settings') await context.read<LocationService>().openSettings(access);
+    if (choice == 'whatsapp') await _whatsApp(withLocation: false);
+  }
+
+  Future<void> _whatsApp({bool withLocation = true}) {
+    final sos = context.read<SosController>();
+    return showWhatsAppSheet(
+      context,
+      whatsApp: context.read<WhatsAppService>(),
+      targets: sos.targets,
+      text: sos.whatsAppText(withLocation: withLocation),
     );
   }
 
   @override
-  Widget build(BuildContext context) => SafeArea(
+  Widget build(BuildContext context) {
+    final sos = context.watch<SosController>();
+    final state = sos.state;
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            const SizedBox(height: 30),
+            const SizedBox(height: 10),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
@@ -70,37 +114,53 @@ class _SosScreenState extends State<SosScreen> {
                 style: TextStyle(color: AppColors.cyan, fontSize: 11, fontWeight: FontWeight.w700),
               ),
             ),
-            const Spacer(),
+            const SizedBox(height: 24),
             const Text('EMERGÊNCIA', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900)),
             const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 40, vertical: 8),
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               child: Text(
-                'Seu sinal será emitido para as autoridades e contatos de confiança',
+                'Seu alerta será enviado pelo WhatsApp aos seus contatos de confiança',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.white54),
               ),
             ),
-            const SizedBox(height: 30),
-            SosButton(onTriggered: _fire),
-            const Spacer(),
-            const Padding(
-              padding: EdgeInsets.all(20),
-              child: AppCard(
+            const SizedBox(height: 16),
+            SosButton(
+              onPressed: sos.busy ? null : _onTap,
+              label: state.phase == SosPhase.countdown ? '${state.secondsLeft}' : 'SOS',
+            ),
+            const SizedBox(height: 16),
+            if (state.phase != SosPhase.idle)
+              SosStatusCard(
+                state: state,
+                onCancel: sos.cancel,
+                onWhatsApp: sos.targets.isEmpty ? null : _whatsApp,
+                onDismiss: sos.dismiss,
+              )
+            else
+              const AppCard(
                 child: Row(
                   children: [
                     Icon(Icons.notifications_active_outlined, color: AppColors.red),
                     SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Pressione por 3 segundos para iniciar o protocolo de rastreamento e envio.',
+                        'Toque para enviar. Você tem 5 segundos para cancelar.',
                         style: TextStyle(color: Colors.white70, fontSize: 13),
                       ),
                     ),
                   ],
                 ),
               ),
+            const SizedBox(height: 16),
+            const Text(
+              SosScreen.privacy,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white38, fontSize: 11),
             ),
           ],
         ),
-      );
+      ),
+    );
+  }
 }

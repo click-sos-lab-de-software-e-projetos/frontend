@@ -1,7 +1,6 @@
 import 'package:alerta_seguro/data/models/contact.dart';
 import 'package:alerta_seguro/features/contacts/contacts_controller.dart';
 import 'package:alerta_seguro/features/settings/settings_screen.dart';
-import 'package:alerta_seguro/features/settings/sos_settings_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -9,7 +8,7 @@ import 'package:provider/provider.dart';
 import '../../helpers/test_app.dart';
 
 void main() {
-  testWidgets('toggles contacts and edits the SOS message', (tester) async {
+  testWidgets('toggles contacts', (tester) async {
     await pumpTestApp(tester, home: const Scaffold(body: SettingsScreen()), deps: TestDeps(loggedIn: true));
     final context = tester.element(find.byType(SettingsScreen));
 
@@ -18,6 +17,12 @@ void main() {
     await tester.tap(find.text('Contato Exemplo 2'));
     await tester.pumpAndSettle();
     expect(context.read<ContactsController>().activeContacts.map((c) => c.id), ['demo-1', 'demo-2']);
+  });
+
+  testWidgets('saves the SOS message on the account and clears it back to the default', (tester) async {
+    final deps =
+        await pumpTestApp(tester, home: const Scaffold(body: SettingsScreen()), deps: TestDeps(loggedIn: true));
+    expect(find.text(SettingsScreen.defaultMessageLabel), findsOneWidget);
 
     await tester.tap(find.text('ALTERAR'));
     await tester.pumpAndSettle();
@@ -25,8 +30,17 @@ void main() {
     await tester.tap(find.text('Salvar'));
     await tester.pumpAndSettle();
 
-    expect(context.read<SosSettingsController>().settings.message, 'Me ajude!');
-    expect(find.text('"Me ajude! [link do mapa]"'), findsOneWidget);
+    expect(find.text('"Me ajude!"'), findsOneWidget);
+    expect((await deps.auth.me()).sosMessage, 'Me ajude!');
+
+    await tester.tap(find.text('ALTERAR'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), '');
+    await tester.tap(find.text('Salvar'));
+    await tester.pumpAndSettle();
+
+    expect(find.text(SettingsScreen.defaultMessageLabel), findsOneWidget);
+    expect((await deps.auth.me()).sosMessage, '');
   });
 
   testWidgets('shows the server error when the active limit is reached', (tester) async {
@@ -54,5 +68,6 @@ void main() {
     await pumpTestApp(tester, home: const Scaffold(body: SettingsScreen()));
     expect(find.textContaining('Entre na sua conta'), findsOneWidget);
     expect(find.text('Contato Exemplo 1'), findsNothing);
+    expect(find.text('ALTERAR'), findsNothing);
   });
 }

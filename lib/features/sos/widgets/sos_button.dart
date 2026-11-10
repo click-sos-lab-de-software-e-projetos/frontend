@@ -2,77 +2,50 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme.dart';
 
-/// Round SOS button that fires [onTriggered] after being held for [holdDuration].
-class SosButton extends StatefulWidget {
-  const SosButton({super.key, required this.onTriggered, this.holdDuration = const Duration(seconds: 3)});
+/// Round SOS button. One tap calls [onPressed]; `null` disables it.
+class SosButton extends StatelessWidget {
+  const SosButton({super.key, required this.onPressed, this.label = 'SOS'});
 
-  final VoidCallback onTriggered;
-  final Duration holdDuration;
+  final VoidCallback? onPressed;
 
-  @override
-  State<SosButton> createState() => _SosButtonState();
-}
-
-class _SosButtonState extends State<SosButton> with SingleTickerProviderStateMixin {
-  late final AnimationController _hold = AnimationController(vsync: this, duration: widget.holdDuration)
-    ..addStatusListener((s) {
-      if (s == AnimationStatus.completed) {
-        _hold.reset();
-        widget.onTriggered();
-      }
-    });
+  /// Shows the countdown while the alert can still be cancelled.
+  final String label;
 
   @override
-  void dispose() {
-    _hold.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => GestureDetector(
-        onTapDown: (_) => _hold.forward(),
-        onTapUp: (_) => _hold.reset(),
-        onTapCancel: _hold.reset,
-        child: AnimatedBuilder(
-          animation: _hold,
-          builder: (_, __) => SizedBox(
-            width: 230,
-            height: 230,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Container(
-                  width: 200 + 30 * _hold.value,
-                  height: 200 + 30 * _hold.value,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.red.withValues(alpha: .12 + .1 * _hold.value),
-                  ),
+  Widget build(BuildContext context) {
+    final enabled = onPressed != null;
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      label: 'Enviar alerta de emergência',
+      child: GestureDetector(
+        onTap: onPressed,
+        child: SizedBox(
+          width: 230,
+          height: 230,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                width: 210,
+                height: 210,
+                decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.red.withValues(alpha: .15)),
+              ),
+              Container(
+                width: 150,
+                height: 150,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: enabled ? AppColors.red : AppColors.red.withValues(alpha: .5),
+                  boxShadow: [BoxShadow(color: AppColors.red.withValues(alpha: .6), blurRadius: 40)],
                 ),
-                SizedBox(
-                  width: 170,
-                  height: 170,
-                  child: CircularProgressIndicator(
-                    value: _hold.value,
-                    strokeWidth: 4,
-                    color: Colors.white,
-                    backgroundColor: Colors.transparent,
-                  ),
-                ),
-                Container(
-                  width: 150,
-                  height: 150,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.red,
-                    boxShadow: [BoxShadow(color: AppColors.red.withValues(alpha: .6), blurRadius: 40)],
-                  ),
-                  alignment: Alignment.center,
-                  child: const Text('SOS', style: TextStyle(fontSize: 36, fontWeight: FontWeight.w900)),
-                ),
-              ],
-            ),
+                alignment: Alignment.center,
+                child: Text(label, style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w900)),
+              ),
+            ],
           ),
         ),
-      );
+      ),
+    );
+  }
 }

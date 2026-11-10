@@ -20,6 +20,9 @@ abstract interface class AuthRepository {
 
   /// Profile of the session's user. Throws [UnauthorizedException] without a valid session.
   Future<UserProfile> me();
+
+  /// Saves the account's SOS message (empty clears it) and returns the updated profile.
+  Future<UserProfile> updateSosMessage(String message);
 }
 
 class EmailInUseException extends RepositoryException {
@@ -80,6 +83,19 @@ class HttpAuthRepository implements AuthRepository {
       throw RepositoryException.fromDio(e, 'Não foi possível carregar seu perfil.');
     }
   }
+
+  @override
+  Future<UserProfile> updateSosMessage(String message) async {
+    try {
+      final r = await _dio.patch<Map<String, dynamic>>('/auth/me', data: {'mensagem_sos': message});
+      return UserProfile.fromApi(r.data ?? const {});
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 422) {
+        throw RepositoryException('A mensagem pode ter até 255 caracteres.', cause: e);
+      }
+      throw RepositoryException.fromDio(e, 'Não foi possível salvar a mensagem.');
+    }
+  }
 }
 
 /// In-memory accounts. Accepts any non-empty e-mail and password for
@@ -96,6 +112,7 @@ class FakeAuthRepository implements AuthRepository {
 
   final UserProfile profile;
   final Map<String, ({UserProfile profile, String password})> _accounts = {};
+  final Map<String, String> _messages = {};
   String? _current;
 
   @override
@@ -127,6 +144,15 @@ class FakeAuthRepository implements AuthRepository {
   Future<UserProfile> me() async {
     final key = _current;
     if (key == null) throw const UnauthorizedException();
-    return _accounts[key]?.profile ?? profile.copyWith(email: key);
+    final found = _accounts[key]?.profile ?? profile.copyWith(email: key);
+    return found.copyWith(sosMessage: _messages[key] ?? found.sosMessage);
+  }
+
+  @override
+  Future<UserProfile> updateSosMessage(String message) async {
+    final key = _current;
+    if (key == null) throw const UnauthorizedException();
+    _messages[key] = message;
+    return me();
   }
 }

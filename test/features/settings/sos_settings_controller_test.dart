@@ -7,16 +7,6 @@ void main() {
     expect(SosSettingsController().settings, const SosSettings());
   });
 
-  test('setMessage trims and validates length', () {
-    final c = SosSettingsController();
-    c.setMessage('  socorro  ');
-    expect(c.settings.message, 'socorro');
-
-    expect(() => c.setMessage('   '), throwsArgumentError);
-    expect(() => c.setMessage('x' * 161), throwsArgumentError);
-    expect(c.settings.message, 'socorro');
-  });
-
   test('setSilentAlert notifies only on change', () {
     final c = SosSettingsController();
     var notified = 0;

@@ -108,7 +108,7 @@ void main() {
 
   group('UserProfile', () {
     test('round-trips through JSON and tolerates missing fields', () {
-      const p = UserProfile(name: 'N', email: 'e@x', phone: '1', protectionId: '#AS');
+      const p = UserProfile(name: 'N', email: 'e@x', phone: '1', protectionId: '#AS', sosMessage: 'Socorro');
       expect(UserProfile.fromJson(p.toJson()), p);
       expect(UserProfile.fromJson(const {}), UserProfile.empty);
       expect(p.copyWith(name: 'M').name, 'M');
@@ -121,18 +121,25 @@ void main() {
         'email': 'ana@example.com',
         'telefone_pessoal': '+5511900000000',
         'criado_em': '2026-05-01T11:00:00Z',
+        'mensagem_sos': 'Me liga agora',
       });
       expect(
         p,
-        const UserProfile(name: 'Ana Silva', email: 'ana@example.com', phone: '+5511900000000', protectionId: 'u-1'),
+        const UserProfile(
+          name: 'Ana Silva',
+          email: 'ana@example.com',
+          phone: '+5511900000000',
+          protectionId: 'u-1',
+          sosMessage: 'Me liga agora',
+        ),
       );
+      expect(UserProfile.fromApi(const {'mensagem_sos': null}).sosMessage, '');
     });
   });
 
   group('SosSettings', () {
     test('defaults, JSON round-trip and copyWith', () {
       const s = SosSettings();
-      expect(s.message, SosSettings.defaultMessage);
       expect(s.silentAlert, isTrue);
       expect(SosSettings.fromJson(s.toJson()), s);
       expect(s.copyWith(silentAlert: false).silentAlert, isFalse);

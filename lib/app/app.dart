@@ -50,12 +50,12 @@ class AlertaApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (c) => OccurrencesController(c.read<OccurrenceRepository>(), c.read<LocationService>()),
         ),
-        Provider(
+        ChangeNotifierProvider(
           create: (c) => SosController(
             alerts: c.read<AlertRepository>(),
             location: c.read<LocationService>(),
             contacts: c.read<ContactsController>(),
-            settings: c.read<SosSettingsController>(),
+            profile: c.read<ProfileController>(),
             session: c.read<Session>(),
           ),
         ),

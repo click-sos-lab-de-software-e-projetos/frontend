@@ -71,6 +71,24 @@ void main() {
       final repo = HttpAuthRepository(stubDio(StubDioAdapter(status: 401)));
       expect(repo.me(), throwsA(isA<UnauthorizedException>()));
     });
+
+    test('updateSosMessage patches mensagem_sos and returns the saved profile', () async {
+      final adapter = StubDioAdapter(body: {...user, 'mensagem_sos': 'Me liga'});
+      final saved = await HttpAuthRepository(stubDio(adapter)).updateSosMessage('Me liga');
+
+      expect(saved.sosMessage, 'Me liga');
+      expect(adapter.requests.single.path, '/auth/me');
+      expect(adapter.requests.single.method, 'PATCH');
+      expect(adapter.requests.single.data, {'mensagem_sos': 'Me liga'});
+    });
+
+    test('updateSosMessage explains a 422', () {
+      final repo = HttpAuthRepository(stubDio(StubDioAdapter(status: 422)));
+      expect(
+        repo.updateSosMessage('x'),
+        throwsA(isA<RepositoryException>().having((e) => e.message, 'message', contains('255'))),
+      );
+    });
   });
 
   group('FakeAuthRepository', () {
@@ -97,6 +115,15 @@ void main() {
       expect(repo.login(email: 'a@x.com', password: 'wrong'), throwsA(isA<InvalidCredentialsException>()));
       await repo.login(email: 'a@x.com', password: '12345678');
       expect((await repo.me()).name, 'Ana');
+    });
+
+    test('updateSosMessage is kept for the logged account', () async {
+      final repo = FakeAuthRepository();
+      await repo.login(email: 'me@x', password: '1');
+
+      expect((await repo.updateSosMessage('Me liga')).sosMessage, 'Me liga');
+      expect((await repo.me()).sosMessage, 'Me liga');
+      expect(FakeAuthRepository().updateSosMessage('x'), throwsA(isA<UnauthorizedException>()));
     });
 
     test('me without login is unauthorized', () {

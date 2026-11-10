@@ -38,6 +38,10 @@ class ProfileController extends ChangeNotifier {
     }
   }
 
+  /// Saves the SOS message on the account; empty goes back to the default text.
+  Future<void> saveSosMessage(AuthRepository auth, String message) async =>
+      replace(await auth.updateSosMessage(message.trim()));
+
   void update({String? name, String? email, String? phone}) =>
       replace(_profile.copyWith(name: name?.trim(), email: email?.trim(), phone: phone?.trim()));
 

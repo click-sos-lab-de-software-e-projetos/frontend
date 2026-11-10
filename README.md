@@ -13,7 +13,7 @@ contatos de confiança via WhatsApp.
 |---|------|---------|
 | 1 | Mapa de calor | `lib/features/map/map_screen.dart` |
 | 2 | Registro de ocorrência | `lib/features/occurrence/occurrence_screen.dart` |
-| 3 | Emergência / SOS (segurar 3 s) | `lib/features/sos/sos_screen.dart` |
+| 3 | Emergência / SOS (um toque, 5 s para cancelar) | `lib/features/sos/sos_screen.dart` |
 | 4 | Configurar SOS | `lib/features/settings/settings_screen.dart` |
 | 5 | Perfil | `lib/features/profile/profile_screen.dart` |
 | 6 | Login | `lib/features/auth/login_screen.dart` |
@@ -133,11 +133,14 @@ O que já usa a API:
 | Funcionalidade | Rotas |
 |----------------|-------|
 | Cadastro, login e perfil | `POST /auth/cadastro`, `POST /auth/login`, `GET /auth/me` |
+| Mensagem de socorro (Ajustes) | `PATCH /auth/me` (`mensagem_sos`, até 255; vazio volta à padrão) |
 | Contatos de confiança (máx. 3 ativos) | `GET/POST /contatos`, `PATCH/DELETE /contatos/{id}` |
-| Alerta SOS | `POST /sos/alertas` (`latitude`, `longitude`, `mensagem`) |
+| Alerta SOS | `POST /sos/alertas` (`latitude`, `longitude`), `GET /sos/alertas/{id}` |
 
 - O token JWT fica no armazenamento seguro do aparelho (`SecureTokenStore`): ao abrir o app, a sessão é restaurada na hora e o perfil é buscado em `GET /auth/me` em segundo plano. Ele vale 24 h; quando a API responde 401, a sessão é encerrada e o token apagado. Falha de rede mantém o token. No modo demo (`USE_FAKE_API=true`) o token fica só na memória.
-- O alerta só é registrado no servidor com login e localização. O backend exige ao menos um contato ativo **com consentimento**; ainda não há rota para registrar o consentimento, então a mensagem de erro da API é exibida e o envio manual por WhatsApp continua disponível.
+- S.O.S: um toque inicia uma contagem de 5 s com "Cancelar"; depois o app lê a localização e cria o alerta sem `mensagem` — o backend usa a mensagem salva em Ajustes ou a padrão. O status é consultado a cada 3 s (até 2 min) e o painel mostra enviando, enviado, erro ou "ainda enviando".
+- Antes do primeiro pedido de localização o app explica o motivo. Com permissão negada ou GPS desligado, oferece abrir as configurações ou enviar só pelo WhatsApp (sem link). O WhatsApp (`wa.me`) também fica como opção secundária no painel de status.
+- O backend exige ao menos um contato ativo **com consentimento**; sem isso, a mensagem de erro da API é exibida.
 - Mapa e ocorrências (`/occurrences`) ainda não existem no backend: use o modo demonstração para vê-los.
 - A edição de perfil continua só local (não há rota de atualização).
 

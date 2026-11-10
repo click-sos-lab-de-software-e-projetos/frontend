@@ -2,7 +2,13 @@ import 'package:flutter/foundation.dart';
 
 @immutable
 class UserProfile {
-  const UserProfile({required this.name, required this.email, required this.phone, required this.protectionId});
+  const UserProfile({
+    required this.name,
+    required this.email,
+    required this.phone,
+    required this.protectionId,
+    this.sosMessage = '',
+  });
 
   static const empty = UserProfile(name: '', email: '', phone: '', protectionId: '');
 
@@ -11,6 +17,7 @@ class UserProfile {
         email: json['email'] as String? ?? '',
         phone: json['phone'] as String? ?? '',
         protectionId: json['protectionId'] as String? ?? '',
+        sosMessage: json['sosMessage'] as String? ?? '',
       );
 
   /// Response of `/auth/cadastro` and `/auth/me`.
@@ -19,6 +26,7 @@ class UserProfile {
         email: json['email'] as String? ?? '',
         phone: json['telefone_pessoal'] as String? ?? '',
         protectionId: json['id'] as String? ?? '',
+        sosMessage: json['mensagem_sos'] as String? ?? '',
       );
 
   final String name;
@@ -26,13 +34,19 @@ class UserProfile {
   final String phone;
   final String protectionId;
 
-  Map<String, dynamic> toJson() => {'name': name, 'email': email, 'phone': phone, 'protectionId': protectionId};
+  /// S.O.S. message saved in Ajustes; empty means the server's default (Regra 02).
+  final String sosMessage;
 
-  UserProfile copyWith({String? name, String? email, String? phone, String? protectionId}) => UserProfile(
+  Map<String, dynamic> toJson() =>
+      {'name': name, 'email': email, 'phone': phone, 'protectionId': protectionId, 'sosMessage': sosMessage};
+
+  UserProfile copyWith({String? name, String? email, String? phone, String? protectionId, String? sosMessage}) =>
+      UserProfile(
         name: name ?? this.name,
         email: email ?? this.email,
         phone: phone ?? this.phone,
         protectionId: protectionId ?? this.protectionId,
+        sosMessage: sosMessage ?? this.sosMessage,
       );
 
   @override
@@ -41,8 +55,9 @@ class UserProfile {
       other.name == name &&
       other.email == email &&
       other.phone == phone &&
-      other.protectionId == protectionId;
+      other.protectionId == protectionId &&
+      other.sosMessage == sosMessage;
 
   @override
-  int get hashCode => Object.hash(name, email, phone, protectionId);
+  int get hashCode => Object.hash(name, email, phone, protectionId, sosMessage);
 }

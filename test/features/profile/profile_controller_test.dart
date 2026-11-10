@@ -84,4 +84,15 @@ void main() {
 
     expect(c.profile, UserProfile.empty);
   });
+
+  test('saveSosMessage trims, saves and keeps the server answer', () async {
+    final auth = FakeAuthRepository();
+    await auth.login(email: 'ana@x.com', password: '1');
+    final c = ProfileController(_ana);
+
+    await c.saveSosMessage(auth, '  Me liga  ');
+
+    expect(c.profile.sosMessage, 'Me liga');
+    expect((await auth.me()).sosMessage, 'Me liga');
+  });
 }

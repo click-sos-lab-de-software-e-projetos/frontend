@@ -25,3 +25,42 @@ class SosAlert {
   @override
   String toString() => 'SosAlert($latitude, $longitude, $message)';
 }
+
+/// Delivery of an alert by the server's WhatsApp worker (Regra 04).
+enum AlertDelivery {
+  pending('PENDENTE'),
+  sent('ENVIADO'),
+  failed('ERRO');
+
+  const AlertDelivery(this.api);
+
+  final String api;
+
+  bool get isFinal => this != pending;
+}
+
+/// Body of `GET /sos/alertas/{id}`.
+@immutable
+class AlertStatus {
+  const AlertStatus(this.delivery, {this.attempts = 0});
+
+  /// Throws [FormatException] for an unknown `status_envio`.
+  factory AlertStatus.fromApi(Map<String, dynamic> json) {
+    final api = json['status_envio'];
+    final delivery = AlertDelivery.values.where((d) => d.api == api).firstOrNull;
+    if (delivery == null) throw FormatException('status_envio desconhecido: $api');
+    return AlertStatus(delivery, attempts: (json['tentativas'] as num?)?.toInt() ?? 0);
+  }
+
+  final AlertDelivery delivery;
+  final int attempts;
+
+  @override
+  bool operator ==(Object other) => other is AlertStatus && other.delivery == delivery && other.attempts == attempts;
+
+  @override
+  int get hashCode => Object.hash(delivery, attempts);
+
+  @override
+  String toString() => 'AlertStatus($delivery, $attempts)';
+}
