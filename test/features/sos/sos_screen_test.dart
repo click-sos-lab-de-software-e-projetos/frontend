@@ -1,6 +1,7 @@
 import 'package:alerta_seguro/core/services/location_service.dart';
 import 'package:alerta_seguro/data/models/contact.dart';
 import 'package:alerta_seguro/data/models/sos_alert.dart';
+import 'package:alerta_seguro/features/profile/privacy_screen.dart';
 import 'package:alerta_seguro/features/sos/sos_controller.dart';
 import 'package:alerta_seguro/features/sos/sos_screen.dart';
 import 'package:alerta_seguro/features/sos/widgets/sos_status_card.dart';
@@ -113,6 +114,20 @@ void main() {
     await tester.tap(find.text('Agora não'));
     await tester.pump(const Duration(seconds: 10));
 
+    expect(location.requests, 0);
+    expect(deps.alerts.sent, isEmpty);
+  });
+
+  testWidgets('the explanation links to the privacy policy without asking the OS', (tester) async {
+    final location = FakeLocationService((lat: 1, lng: 2))..access = LocationAccess.canAsk;
+    final deps = await pumpTestApp(tester, home: _screen, deps: TestDeps(loggedIn: true, location: location));
+
+    await tester.tap(find.text('SOS'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Ver política de privacidade'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(PrivacyScreen), findsOneWidget);
     expect(location.requests, 0);
     expect(deps.alerts.sent, isEmpty);
   });

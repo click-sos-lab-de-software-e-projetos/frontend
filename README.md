@@ -20,6 +20,7 @@ contatos de confiança via WhatsApp.
 | 7 | Configurações de perfil | `lib/features/profile/edit_profile_screen.dart` (+ `change_password_screen.dart`) |
 | 8 | Registrar / editar contato de confiança | `lib/features/contacts/add_contact_screen.dart` |
 | — | Cadastro | `lib/features/auth/register_screen.dart` |
+| — | Privacidade e dados | `lib/features/profile/privacy_screen.dart` |
 
 ## Stack
 
@@ -138,6 +139,7 @@ O que já usa a API:
 | Cadastro, login e perfil | `POST /auth/cadastro`, `POST /auth/login`, `GET /auth/me` |
 | Mensagem de socorro (Ajustes) | `PATCH /auth/me` (`mensagem_sos`, até 255; vazio volta à padrão) |
 | Editar perfil / trocar senha | `PATCH /auth/me` (`nome_completo`, `telefone_pessoal`), `POST /auth/me/senha` |
+| Excluir conta | `DELETE /auth/me` (`{ senha }`) |
 | Contatos de confiança (máx. 3 ativos) | `GET/POST /contatos`, `PATCH/DELETE /contatos/{id}` |
 | Alerta SOS | `POST /sos/alertas` (`latitude`, `longitude`), `GET /sos/alertas/{id}` |
 | Mapa de risco | `GET /mapa/regioes?latitude&longitude&raio=10000` |
@@ -150,6 +152,7 @@ O que já usa a API:
 - Mapa: um círculo por distrito, com centro, raio e cor (`cor_hex`) da API; tocar mostra nome, score e faixa (Baixo < 34, Médio 34–66, Alto ≥ 67). A rota exige login: deslogado, o mapa fica sem círculos e pede para entrar. Ao parar de mover a câmera, recarrega se o centro andou mais de 2 km.
 - O mapa nunca pede permissão de localização (MAPM-03): usa a posição só se ela já foi liberada (ex.: pelo S.O.S); senão centraliza na Praça da Sé.
 - Feedback comunitário (MAP-04): no cartão do distrito, "Enviar feedback" abre uma folha com a categoria (Iluminação, Assalto, Assédio, Pouco movimento, Falta de policiamento, Outro) e um texto opcional de até 500 caracteres (obrigatório em "Outro"). O relato fica pendente de análise e não muda o score nem a cor do mapa.
+- Privacidade (Regra 08): "Privacidade e dados" no Perfil (também deslogado) explica o que é guardado, a retenção de 180 dias e a anonimização; o diálogo "Por que a localização?" do S.O.S leva a essa tela. Logado, "Excluir conta" pede duas confirmações (aviso + senha); depois a sessão é encerrada, o token apagado e o Login abre com "Conta excluída.".
 - Contatos: tocar no contato no Perfil abre "Editar contato" (nome, telefone e "Remover contato", com confirmação). Trocar o telefone de quem já aceitou ou recusou pede confirmação, porque o consentimento é pedido de novo e o contato não recebe alertas até aceitar.
 - Configurações de perfil: salva nome e telefone (E.164) na conta, enviando só o que mudou. O e-mail aparece só para leitura. "Trocar senha" exige a senha atual, a nova (mín. 8) e a confirmação; senha atual errada mostra "Senha atual incorreta.".
 

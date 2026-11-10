@@ -73,4 +73,19 @@ void main() {
     expect(c.loggedIn, isTrue);
     expect(notified, isTrue);
   });
+
+  test('deleteAccount ends the session only after the server deletes it', () async {
+    final session = Session();
+    final repo = FakeAuthRepository();
+    await repo.register(name: 'Ana', email: 'a@x.com', phone: '+1', password: '12345678');
+    final c = AuthController(repo, session);
+    await c.login(email: 'a@x.com', password: '12345678');
+
+    await expectLater(c.deleteAccount('wrong'), throwsA(isA<RepositoryException>()));
+    expect(c.loggedIn, isTrue);
+    expect(c.loading, isFalse);
+
+    await c.deleteAccount('12345678');
+    expect(c.loggedIn, isFalse);
+  });
 }

@@ -13,6 +13,7 @@ import '../auth/login_screen.dart';
 import '../contacts/add_contact_screen.dart';
 import '../contacts/contacts_controller.dart';
 import 'edit_profile_screen.dart';
+import 'privacy_screen.dart';
 import 'profile_controller.dart';
 
 /// TELA 5 — Perfil (com aviso de login quando deslogado).
@@ -178,6 +179,8 @@ class ProfileScreen extends StatelessWidget {
                       ),
                     ),
                 const SizedBox(height: 16),
+                OutlineActionButton('Privacidade e dados', () => _go(context, const PrivacyScreen())),
+                const SizedBox(height: 12),
                 OutlineActionButton('Desconectar do Dispositivo', auth.logout, color: AppColors.red),
                 const SizedBox(height: 20),
               ],

@@ -36,6 +36,13 @@ class AuthController extends ChangeNotifier {
 
   void logout() => _session.clear();
 
+  /// Deletes the account and ends the session (the saved token is erased).
+  /// On failure the session is kept and the exception rethrown.
+  Future<void> deleteAccount(String password) => _busy(() async {
+        await _repository.deleteAccount(password);
+        _session.clear();
+      });
+
   Future<UserProfile> _login(String email, String password) async {
     _session.start(await _repository.login(email: email, password: password));
     try {

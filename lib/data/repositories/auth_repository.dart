@@ -29,6 +29,9 @@ abstract interface class AuthRepository {
 
   /// Throws [WrongPasswordException] when [current] is not the account's password.
   Future<void> changePassword({required String current, required String next});
+
+  /// Deletes the account for good; the server anonymizes its alerts.
+  Future<void> deleteAccount(String password);
 }
 
 class EmailInUseException extends RepositoryException {
@@ -138,6 +141,16 @@ class HttpAuthRepository implements AuthRepository {
       throw RepositoryException.fromDio(e, 'Não foi possível trocar a senha.');
     }
   }
+
+  @override
+  Future<void> deleteAccount(String password) async {
+    try {
+      await _dio.delete<void>('/auth/me', data: {'senha': password});
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 400) throw RepositoryException('Senha incorreta.', cause: e);
+      throw RepositoryException.fromDio(e, 'Não foi possível excluir a conta.');
+    }
+  }
 }
 
 /// In-memory accounts. Accepts any non-empty e-mail and password for
@@ -217,5 +230,18 @@ class FakeAuthRepository implements AuthRepository {
     if (account == null) return;
     if (account.password != current) throw const WrongPasswordException();
     _accounts[key] = (profile: account.profile, password: next);
+  }
+
+  /// Accounts created with [register] check [password]; demo accounts accept any.
+  @override
+  Future<void> deleteAccount(String password) async {
+    final key = _current;
+    if (key == null) throw const UnauthorizedException();
+    final account = _accounts[key];
+    if (account != null && account.password != password) throw const RepositoryException('Senha incorreta.');
+    _accounts.remove(key);
+    _edited.remove(key);
+    _messages.remove(key);
+    _current = null;
   }
 }

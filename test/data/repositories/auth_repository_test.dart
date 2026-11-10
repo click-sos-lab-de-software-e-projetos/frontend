@@ -121,6 +121,29 @@ void main() {
       expect(adapter.requests.single.data, {'senha_atual': 'old', 'senha_nova': '12345678'});
     });
 
+    test('deleteAccount sends DELETE /auth/me with the password', () async {
+      final adapter = StubDioAdapter(status: 204);
+      await HttpAuthRepository(stubDio(adapter)).deleteAccount('pw');
+
+      expect(adapter.requests.single.path, '/auth/me');
+      expect(adapter.requests.single.method, 'DELETE');
+      expect(adapter.requests.single.data, {'senha': 'pw'});
+    });
+
+    test('deleteAccount explains a wrong password and an SOS being sent', () {
+      final wrong = HttpAuthRepository(stubDio(StubDioAdapter(status: 400)));
+      expect(
+        wrong.deleteAccount('x'),
+        throwsA(isA<RepositoryException>().having((e) => e.message, 'message', 'Senha incorreta.')),
+      );
+      final busy =
+          HttpAuthRepository(stubDio(StubDioAdapter(status: 409, body: {'detail': 'Há um alerta S.O.S em envio.'})));
+      expect(
+        busy.deleteAccount('pw'),
+        throwsA(isA<RepositoryException>().having((e) => e.message, 'message', 'Há um alerta S.O.S em envio.')),
+      );
+    });
+
     test('changePassword maps 400 to WrongPasswordException', () {
       final repo = HttpAuthRepository(stubDio(StubDioAdapter(status: 400)));
       expect(
@@ -186,6 +209,19 @@ void main() {
       await repo.changePassword(current: '12345678', next: 'abcdefgh');
       expect(repo.login(email: 'a@x.com', password: '12345678'), throwsA(isA<InvalidCredentialsException>()));
       expect(await repo.login(email: 'a@x.com', password: 'abcdefgh'), isNotEmpty);
+    });
+
+    test('deleteAccount checks the password and frees the e-mail', () async {
+      final repo = FakeAuthRepository();
+      await repo.register(name: 'Ana', email: 'a@x.com', phone: '+1', password: '12345678');
+      await repo.login(email: 'a@x.com', password: '12345678');
+
+      expect(repo.deleteAccount('wrong'), throwsA(isA<RepositoryException>()));
+      await repo.deleteAccount('12345678');
+
+      expect(repo.me(), throwsA(isA<UnauthorizedException>()));
+      expect((await repo.register(name: 'Ana', email: 'a@x.com', phone: '+1', password: 'abcdefgh')).name, 'Ana');
+      expect(FakeAuthRepository().deleteAccount('x'), throwsA(isA<UnauthorizedException>()));
     });
 
     test('me without login is unauthorized', () {

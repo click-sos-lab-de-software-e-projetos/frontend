@@ -5,6 +5,7 @@ import '../../app/theme.dart';
 import '../../core/services/location_service.dart';
 import '../../core/services/whatsapp_service.dart';
 import '../../shared/widgets/app_card.dart';
+import '../profile/privacy_screen.dart';
 import 'sos_controller.dart';
 import 'widgets/sos_button.dart';
 import 'widgets/sos_status_card.dart';
@@ -57,6 +58,13 @@ class _SosScreenState extends State<SosScreen> {
           title: const Text('Por que a localização?'),
           content: const Text(SosScreen.whyLocation),
           actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(c, false);
+                Navigator.push(context, MaterialPageRoute<void>(builder: (_) => const PrivacyScreen()));
+              },
+              child: const Text('Ver política de privacidade'),
+            ),
             TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Agora não')),
             TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('Continuar')),
           ],
