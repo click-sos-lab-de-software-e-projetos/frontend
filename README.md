@@ -29,6 +29,7 @@ contatos de confiança via WhatsApp.
 - [`dio`](https://pub.dev/packages/dio) — cliente HTTP
 - [`provider`](https://pub.dev/packages/provider) — injeção de dependências e estado (`ChangeNotifier`)
 - [`url_launcher`](https://pub.dev/packages/url_launcher) — abre o WhatsApp (`wa.me`)
+- [`flutter_secure_storage`](https://pub.dev/packages/flutter_secure_storage) — guarda o token (Keychain no iOS, armazenamento criptografado no Android)
 
 ## Pré-requisitos
 
@@ -135,7 +136,7 @@ O que já usa a API:
 | Contatos de confiança (máx. 3 ativos) | `GET/POST /contatos`, `PATCH/DELETE /contatos/{id}` |
 | Alerta SOS | `POST /sos/alertas` (`latitude`, `longitude`, `mensagem`) |
 
-- O token JWT fica **só na memória** (`Session`): fechar o app exige novo login. Ele vale 24 h; quando a API responde 401, a sessão é encerrada.
+- O token JWT fica no armazenamento seguro do aparelho (`SecureTokenStore`): ao abrir o app, a sessão é restaurada na hora e o perfil é buscado em `GET /auth/me` em segundo plano. Ele vale 24 h; quando a API responde 401, a sessão é encerrada e o token apagado. Falha de rede mantém o token. No modo demo (`USE_FAKE_API=true`) o token fica só na memória.
 - O alerta só é registrado no servidor com login e localização. O backend exige ao menos um contato ativo **com consentimento**; ainda não há rota para registrar o consentimento, então a mensagem de erro da API é exibida e o envio manual por WhatsApp continua disponível.
 - Mapa e ocorrências (`/occurrences`) ainda não existem no backend: use o modo demonstração para vê-los.
 - A edição de perfil continua só local (não há rota de atualização).
@@ -163,7 +164,7 @@ lib/
 │   └── theme.dart            # cores e tema
 ├── core/
 │   ├── config/env.dart       # variáveis --dart-define
-│   ├── network/              # Dio (api_client.dart) e sessão com o token (session.dart)
+│   ├── network/              # Dio (api_client.dart) sessão com o token (session.dart) e onde ele é guardado (token_store.dart)
 │   └── services/             # localização e WhatsApp
 ├── data/
 │   ├── models/               # modelos imutáveis (fromJson/toJson)

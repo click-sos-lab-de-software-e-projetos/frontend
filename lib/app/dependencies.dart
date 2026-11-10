@@ -1,6 +1,7 @@
 import '../core/config/env.dart';
 import '../core/network/api_client.dart';
 import '../core/network/session.dart';
+import '../core/network/token_store.dart';
 import '../core/services/location_service.dart';
 import '../core/services/whatsapp_service.dart';
 import '../data/fakes/demo_seed.dart';
@@ -17,7 +18,7 @@ class AppDependencies {
 
   factory AppDependencies.fromEnv(Env env) {
     if (env.useFakeApi) return AppDependencies.demo();
-    final session = Session();
+    final session = Session(store: const SecureTokenStore());
     return AppDependencies(session: session, repositories: Repositories.http(buildDio(env, session: session)));
   }
 

@@ -4,7 +4,10 @@ import 'app/app.dart';
 import 'app/dependencies.dart';
 import 'core/config/env.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   const env = Env.fromEnvironment();
-  runApp(AlertaApp(dependencies: AppDependencies.fromEnv(env)));
+  final dependencies = AppDependencies.fromEnv(env);
+  await dependencies.session.restore();
+  runApp(AlertaApp(dependencies: dependencies));
 }

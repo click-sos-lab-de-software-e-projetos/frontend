@@ -18,7 +18,11 @@ import 'package:flutter_test/flutter_test.dart';
 class TestDeps {
   TestDeps({List<Contact>? contacts, ContactRepository? repository, this.location, bool loggedIn = false})
       : contacts = repository ?? FakeContactRepository(contacts ?? DemoSeed.contacts) {
-    if (loggedIn) session.start('test-token');
+    // The fake auth must know the account too: the app fetches /auth/me for a restored session.
+    if (loggedIn) {
+      auth.login(email: FakeAuthRepository.demoProfile.email, password: 'test');
+      session.start('test-token');
+    }
   }
 
   final session = Session();

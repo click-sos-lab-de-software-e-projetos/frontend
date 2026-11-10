@@ -1,7 +1,20 @@
 import 'package:alerta_seguro/core/network/session.dart';
 import 'package:alerta_seguro/data/models/user_profile.dart';
+import 'package:alerta_seguro/data/repositories/auth_repository.dart';
+import 'package:alerta_seguro/data/repositories/repository_exception.dart';
 import 'package:alerta_seguro/features/profile/profile_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+class _Me extends FakeAuthRepository {
+  _Me(this.result);
+
+  final Future<UserProfile> Function() result;
+
+  @override
+  Future<UserProfile> me() => result();
+}
+
+const _ana = UserProfile(name: 'Ana', email: 'ana@x.com', phone: '+5511900000000', protectionId: 'u1');
 
 void main() {
   test('starts empty and updates trimmed fields', () {
@@ -30,6 +43,45 @@ void main() {
     c.replace(const UserProfile(name: 'N', email: 'e', phone: 'p', protectionId: '#1'));
 
     session.clear();
+    expect(c.profile, UserProfile.empty);
+  });
+
+  test('load fills the profile of a restored session', () async {
+    final c = ProfileController(UserProfile.empty, Session()..start('saved'));
+    await c.load(_Me(() async => _ana));
+    expect(c.profile, _ana);
+  });
+
+  test('load with a rejected token ends the session', () async {
+    final session = Session()..start('expired');
+    final c = ProfileController(UserProfile.empty, session);
+
+    await c.load(_Me(() => Future.error(const UnauthorizedException())));
+
+    expect(session.isActive, isFalse);
+    expect(c.profile, UserProfile.empty);
+  });
+
+  test('load offline keeps the session', () async {
+    final session = Session()..start('saved');
+    final c = ProfileController(UserProfile.empty, session);
+
+    await c.load(_Me(() => Future.error(const RepositoryException('offline'))));
+
+    expect(session.token, 'saved');
+  });
+
+  test('load ignores a profile that arrives after logout', () async {
+    final session = Session()..start('saved');
+    final c = ProfileController(UserProfile.empty, session);
+
+    await c.load(
+      _Me(() async {
+        session.clear();
+        return _ana;
+      }),
+    );
+
     expect(c.profile, UserProfile.empty);
   });
 }

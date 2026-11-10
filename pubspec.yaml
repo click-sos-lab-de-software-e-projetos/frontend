@@ -12,6 +12,7 @@ dependencies:
   dio: ^5.7.0                   # cliente HTTP
   url_launcher: ^6.3.1          # abre o WhatsApp (wa.me)
   provider: ^6.1.5+1
+  flutter_secure_storage: ^11.2.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
