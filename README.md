@@ -117,7 +117,15 @@ memória, o login aceita qualquer e-mail/senha não vazios e, depois dele, apare
 dois contatos de exemplo.
 
 Para usar o [backend](https://github.com/click-sos-lab-de-software-e-projetos/backend)
-local, suba a API (veja o README dele) e rode:
+local, o jeito mais rápido é o script do backend, que sobe banco, API, página de consentimento e
+este app de uma vez (repositórios lado a lado):
+
+```bash
+../backend/scripts/run.sh local                          # Chrome (padrão)
+../backend/scripts/run.sh local --device emulator-5554   # emulador Android (usa 10.0.2.2)
+```
+
+Ou suba a API (veja o README dele) e rode:
 
 ```bash
 # Emulador Android (10.0.2.2 é o computador; é o padrão de API_BASE_URL)
