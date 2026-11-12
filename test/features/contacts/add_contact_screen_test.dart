@@ -15,9 +15,9 @@ void main() {
   testWidgets('logged out: no contacts and a login prompt', (tester) async {
     await pumpTestApp(tester, home: const Scaffold(body: ProfileScreen()));
 
-    expect(find.text('CONTATOS DE CONFIANÇA (0)'), findsOneWidget);
+    expect(find.text('Contatos de confiança'), findsOneWidget);
     expect(find.text('+ ADICIONAR'), findsNothing);
-    expect(find.text('Fazer Login'), findsOneWidget);
+    expect(find.text('Fazer login'), findsOneWidget);
   });
 
   testWidgets('adding a contact validates, converts the phone to E.164 and lists it', (tester) async {
@@ -26,7 +26,7 @@ void main() {
       home: const Scaffold(body: ProfileScreen()),
       deps: TestDeps(contacts: const [], loggedIn: true),
     );
-    expect(find.text('CONTATOS DE CONFIANÇA (0)'), findsOneWidget);
+    expect(find.text('Contatos de confiança (0)'), findsOneWidget);
 
     await tester.tap(find.text('+ ADICIONAR'));
     await tester.pumpAndSettle();
@@ -46,7 +46,7 @@ void main() {
     await tester.tap(find.text('Adicionar'));
     await tester.pumpAndSettle();
 
-    expect(find.text('CONTATOS DE CONFIANÇA (1)'), findsOneWidget);
+    expect(find.text('Contatos de confiança (1)'), findsOneWidget);
     expect(find.text('Bia'), findsOneWidget);
     expect(find.text('+5511900001234 · Aguardando consentimento'), findsOneWidget);
     expect((await deps.contacts.list()).single.phone, '+5511900001234');
@@ -59,7 +59,7 @@ void main() {
     tester.element(find.byType(ProfileScreen)).read<AuthController>().logout();
     await tester.pumpAndSettle();
     expect(find.text('Contato Exemplo 1'), findsNothing);
-    expect(find.text('CONTATOS DE CONFIANÇA (0)'), findsOneWidget);
+    expect(find.text('Contatos de confiança'), findsOneWidget);
   });
 
   testWidgets('pending contact gets a consent request link over WhatsApp; status refreshes on resume', (tester) async {

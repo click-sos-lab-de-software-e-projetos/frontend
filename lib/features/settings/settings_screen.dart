@@ -9,6 +9,7 @@ import '../../shared/widgets/app_card.dart';
 import '../../shared/widgets/page_header.dart';
 import '../../shared/widgets/section_label.dart';
 import '../auth/auth_controller.dart';
+import '../contacts/add_contact_screen.dart';
 import '../contacts/contacts_controller.dart';
 import '../profile/profile_controller.dart';
 import 'sos_settings_controller.dart';
@@ -17,7 +18,7 @@ import 'sos_settings_controller.dart';
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
-  static const defaultMessageLabel = 'Mensagem padrão do Alerta Seguro';
+  static const defaultMessageLabel = 'Mensagem customizada para o botão de alerta';
   static const maxMessageLength = 255;
 
   Future<void> _editMessage(BuildContext context) async {
@@ -62,7 +63,20 @@ class SettingsScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SectionLabel('Contatos de alerta ativos'),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const SectionLabel('Contatos de alerta ativos'),
+                    if (loggedIn)
+                      TextButton(
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute<void>(builder: (_) => const AddContactScreen()),
+                        ),
+                        child: const Text('+ ADICIONAR', style: TextStyle(fontSize: 11)),
+                      ),
+                  ],
+                ),
                 if (!loggedIn)
                   const AppCard(
                     child: Text(

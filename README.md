@@ -145,7 +145,7 @@ O que já usa a API:
 | Funcionalidade | Rotas |
 |----------------|-------|
 | Cadastro, login e perfil | `POST /auth/cadastro`, `POST /auth/login`, `GET /auth/me` |
-| Mensagem de socorro (Ajustes) | `PATCH /auth/me` (`mensagem_sos`, até 255; vazio volta à padrão) |
+| Mensagem do botão de alerta (Ajustes, onde também dá para adicionar contatos) | `PATCH /auth/me` (`mensagem_sos`, até 255; vazio volta à padrão) |
 | Editar perfil / trocar senha | `PATCH /auth/me` (`nome_completo`, `telefone_pessoal`), `POST /auth/me/senha` |
 | Excluir conta | `DELETE /auth/me` (`{ senha }`) |
 | Contatos de confiança (máx. 3 ativos) | `GET/POST /contatos`, `PATCH/DELETE /contatos/{id}` |
@@ -157,11 +157,12 @@ O que já usa a API:
 - S.O.S: um toque inicia uma contagem de 5 s com "Cancelar"; depois o app lê a localização e cria o alerta sem `mensagem` — o backend usa a mensagem salva em Ajustes ou a padrão. O status é consultado a cada 3 s (até 2 min) e o painel mostra enviando, enviado, erro ou "ainda enviando".
 - Antes do primeiro pedido de localização o app explica o motivo. Com permissão negada ou GPS desligado, oferece abrir as configurações ou enviar só pelo WhatsApp (sem link). O WhatsApp (`wa.me`) também fica como opção secundária no painel de status.
 - O backend exige ao menos um contato ativo **com consentimento**; sem isso, a mensagem de erro da API é exibida.
-- Mapa: um círculo por distrito, com centro, raio e cor (`cor_hex`) da API; tocar mostra nome, score e faixa (Baixo < 34, Médio 34–66, Alto ≥ 67). A rota exige login: deslogado, o mapa fica sem círculos e pede para entrar. Ao parar de mover a câmera, recarrega se o centro andou mais de 2 km.
+- Mapa: um círculo por distrito, com centro, raio e cor (`cor_hex`) da API; tocar mostra nome, score e faixa (Baixo < 34, Médio 34–66, Alto ≥ 67). A rota é pública, então o mapa aparece mesmo deslogado; só "Enviar feedback" exige login (deslogado, abre o Login). Ao parar de mover a câmera, recarrega se o centro andou mais de 2 km.
 - O mapa nunca pede permissão de localização (MAPM-03): usa a posição só se ela já foi liberada (ex.: pelo S.O.S); senão centraliza na Praça da Sé.
 - Feedback comunitário (MAP-04): no cartão do distrito, "Enviar feedback" abre uma folha com a categoria (Iluminação, Assalto, Assédio, Pouco movimento, Falta de policiamento, Outro) e um texto opcional de até 500 caracteres (obrigatório em "Outro"). O relato fica pendente de análise e não muda o score nem a cor do mapa.
 - Privacidade (Regra 08): "Privacidade e dados" no Perfil (também deslogado) explica o que é guardado, a retenção de 180 dias e a anonimização; o diálogo "Por que a localização?" do S.O.S leva a essa tela. Logado, "Excluir conta" pede duas confirmações (aviso + senha); depois a sessão é encerrada, o token apagado e o Login abre com "Conta excluída.".
-- Contatos: tocar no contato no Perfil abre "Editar contato" (nome, telefone e "Remover contato", com confirmação). Trocar o telefone de quem já aceitou ou recusou pede confirmação, porque o consentimento é pedido de novo e o contato não recebe alertas até aceitar.
+- Perfil: os contatos de confiança (em destaque) vêm logo abaixo do nome. Deslogado, abaixo deles ficam "Fazer login" e, secundário, "Registrar-se"; logado, e-mail e telefone aparecem como texto abaixo do nome, com o lápis de editar e "Desconectar do Dispositivo". O link "Privacidade e dados" fica no fim da tela.
+- Contatos: no Perfil, quem já consentiu tem um X para remover, com confirmação que avisa que, se for adicionado de novo, precisará consentir novamente. Tocar no contato abre "Editar contato" (nome, telefone e "Remover contato", com confirmação). Trocar o telefone de quem já aceitou ou recusou pede confirmação, porque o consentimento é pedido de novo e o contato não recebe alertas até aceitar.
 - Configurações de perfil: salva nome e telefone (E.164) na conta, enviando só o que mudou. O e-mail aparece só para leitura. "Trocar senha" exige a senha atual, a nova (mín. 8) e a confirmação; senha atual errada mostra "Senha atual incorreta.".
 
 ## Testes e análise

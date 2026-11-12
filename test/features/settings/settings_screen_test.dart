@@ -1,4 +1,5 @@
 import 'package:alerta_seguro/data/models/contact.dart';
+import 'package:alerta_seguro/features/contacts/add_contact_screen.dart';
 import 'package:alerta_seguro/features/contacts/contacts_controller.dart';
 import 'package:alerta_seguro/features/settings/settings_screen.dart';
 import 'package:flutter/material.dart';
@@ -64,10 +65,20 @@ void main() {
     expect(find.text('Limite de 3 contatos ativos atingido.'), findsOneWidget);
   });
 
+  testWidgets('"+ ADICIONAR" opens the new contact form', (tester) async {
+    await pumpTestApp(tester, home: const Scaffold(body: SettingsScreen()), deps: TestDeps(loggedIn: true));
+
+    await tester.tap(find.text('+ ADICIONAR'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AddContactScreen), findsOneWidget);
+  });
+
   testWidgets('asks to log in when logged out', (tester) async {
     await pumpTestApp(tester, home: const Scaffold(body: SettingsScreen()));
     expect(find.textContaining('Entre na sua conta'), findsOneWidget);
     expect(find.text('Contato Exemplo 1'), findsNothing);
     expect(find.text('ALTERAR'), findsNothing);
+    expect(find.text('+ ADICIONAR'), findsNothing);
   });
 }
