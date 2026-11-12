@@ -51,7 +51,6 @@ class AlertaApp extends StatelessWidget {
           create: (c) => MapController(
             regions: c.read<RegionRepository>(),
             location: c.read<LocationService>(),
-            session: c.read<Session>(),
           ),
         ),
         ChangeNotifierProvider(

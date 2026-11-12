@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:ui';
 
-import 'package:alerta_seguro/core/network/session.dart';
 import 'package:alerta_seguro/core/services/location_service.dart';
 import 'package:alerta_seguro/data/models/risk_region.dart';
 import 'package:alerta_seguro/data/repositories/region_repository.dart';
@@ -32,32 +31,11 @@ class _FailingRegions extends FakeRegionRepository {
 const _idle = Duration(milliseconds: 1);
 
 void main() {
-  MapController build({
-    RegionRepository? regions,
-    LocationService? location,
-    Session? session,
-    bool loggedIn = true,
-  }) {
-    final s = session ?? Session();
-    if (loggedIn && !s.isActive) s.start('t');
-    return MapController(
-      regions: regions ?? FakeRegionRepository(),
-      location: location ?? FakeLocationService((lat: -23.5, lng: -46.6)),
-      session: s,
-      idleDelay: _idle,
-    );
-  }
-
-  test('logged out it asks to log in and does not call the API', () async {
-    final regions = FakeRegionRepository();
-    final c = build(regions: regions, loggedIn: false);
-
-    await c.init();
-
-    expect(c.needsLogin, isTrue);
-    expect(c.regions, isEmpty);
-    expect(regions.requests, isEmpty);
-  });
+  MapController build({RegionRepository? regions, LocationService? location}) => MapController(
+        regions: regions ?? FakeRegionRepository(),
+        location: location ?? FakeLocationService((lat: -23.5, lng: -46.6)),
+        idleDelay: _idle,
+      );
 
   test('with permission already granted it centers on the position', () async {
     final regions = FakeRegionRepository();
@@ -117,23 +95,6 @@ void main() {
 
     expect(c.error, 'Sem internet.');
     expect(c.loading, isFalse);
-  });
-
-  test('logout clears the map and login loads it', () async {
-    final session = Session()..start('t');
-    final regions = FakeRegionRepository();
-    final c = build(regions: regions, session: session);
-    await c.init();
-    c.select(c.regions.first.id);
-
-    session.clear();
-    expect(c.regions, isEmpty);
-    expect(c.selected, isNull);
-
-    session.start('t2');
-    await pumpEventQueue();
-    expect(regions.requests, hasLength(2));
-    expect(c.regions, isNotEmpty);
   });
 
   test('select shows one region and null closes it', () async {

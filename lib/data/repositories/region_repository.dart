@@ -1,12 +1,13 @@
 import 'package:dio/dio.dart';
 
+import '../../core/network/api_client.dart';
 import '../models/region_feedback.dart';
 import '../models/risk_region.dart';
 import 'repository_exception.dart';
 
 abstract interface class RegionRepository {
   /// Districts whose border is within [radiusMeters] of the point, nearest first.
-  /// Throws [UnauthorizedException] without a session.
+  /// Public: works without a session.
   Future<List<RiskRegion>> fetchNearby({required double lat, required double lng, int radiusMeters = maxRadius});
 
   /// Sends a community feedback about the region; it stays pending and does not change the map.
@@ -31,6 +32,7 @@ class HttpRegionRepository implements RegionRepository {
       final r = await _dio.get<List<dynamic>>(
         '/mapa/regioes',
         queryParameters: {'latitude': lat, 'longitude': lng, 'raio': radiusMeters},
+        options: AuthInterceptor.public,
       );
       return (r.data ?? const [])
           .map((e) => RiskRegion.fromApi(Map<String, dynamic>.from(e as Map)))

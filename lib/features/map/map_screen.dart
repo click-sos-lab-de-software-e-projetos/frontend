@@ -6,6 +6,8 @@ import '../../app/theme.dart';
 import '../../core/services/geo_point.dart';
 import '../../data/models/risk_region.dart';
 import '../../shared/widgets/app_card.dart';
+import '../auth/auth_controller.dart';
+import '../auth/login_screen.dart';
 import 'map_controller.dart';
 import 'widgets/feedback_sheet.dart';
 import 'widgets/region_card.dart';
@@ -16,7 +18,7 @@ class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
 
   static const thanks = 'Obrigado! Seu relato fica pendente de análise e não muda o mapa.';
-  static const loginNeeded = 'Entre na sua conta (aba Perfil) para ver as regiões de risco.';
+  static const loginToFeedback = 'Entre na sua conta para enviar feedback.';
 
   @override
   State<MapScreen> createState() => _MapScreenState();
@@ -41,6 +43,11 @@ class _MapScreenState extends State<MapScreen> {
 
   Future<void> _feedback(RiskRegion region) async {
     final messenger = ScaffoldMessenger.of(context);
+    if (!context.read<AuthController>().loggedIn) {
+      messenger.showSnackBar(const SnackBar(content: Text(MapScreen.loginToFeedback)));
+      await Navigator.push(context, MaterialPageRoute<void>(builder: (_) => const LoginScreen()));
+      if (!mounted || !context.read<AuthController>().loggedIn) return;
+    }
     if (await showFeedbackSheet(context, region)) {
       messenger.showSnackBar(const SnackBar(content: Text(MapScreen.thanks)));
     }
@@ -100,9 +107,8 @@ class _MapScreenState extends State<MapScreen> {
                       ],
                     ),
                   ),
-                  if (map.needsLogin) const _Notice(text: MapScreen.loginNeeded),
                   if (map.error != null) _Notice(text: map.error!, onRetry: map.retry),
-                  if (!map.needsLogin && map.error == null && !map.loading && map.regions.isEmpty)
+                  if (map.error == null && !map.loading && map.regions.isEmpty)
                     const _Notice(text: 'Nenhuma região de risco por aqui.'),
                   const Spacer(),
                   if (selected != null)

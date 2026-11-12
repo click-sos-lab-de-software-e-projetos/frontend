@@ -2,6 +2,7 @@ import 'package:alerta_seguro/core/services/location_service.dart';
 import 'package:alerta_seguro/data/models/risk_region.dart';
 import 'package:alerta_seguro/data/repositories/region_repository.dart';
 import 'package:alerta_seguro/data/repositories/repository_exception.dart';
+import 'package:alerta_seguro/features/auth/login_screen.dart';
 import 'package:alerta_seguro/features/map/map_controller.dart';
 import 'package:alerta_seguro/features/map/map_screen.dart';
 import 'package:alerta_seguro/features/map/widgets/feedback_sheet.dart';
@@ -33,12 +34,26 @@ Future<TestDeps> _pump(WidgetTester tester, TestDeps deps) async {
 }
 
 void main() {
-  testWidgets('logged out shows no circles and asks to log in', (tester) async {
+  testWidgets('logged out still draws the regions', (tester) async {
     final deps = await _pump(tester, TestDeps());
 
-    expect(find.text(MapScreen.loginNeeded), findsOneWidget);
-    expect(_googleMap(tester).circles, isEmpty);
-    expect(deps.regions.requests, isEmpty);
+    expect(_googleMap(tester).circles, isNotEmpty);
+    expect(deps.regions.requests, hasLength(1));
+  });
+
+  testWidgets('logged out, feedback opens the login instead of the sheet', (tester) async {
+    final deps = await _pump(tester, TestDeps());
+    final region = tester.element(find.byType(MapScreen)).read<MapController>().regions.first;
+
+    _googleMap(tester).circles.firstWhere((c) => c.circleId.value == region.id).onTap!();
+    await tester.pump();
+    await tester.tap(find.text('Enviar feedback'));
+    await tester.pumpAndSettle();
+
+    expect(find.text(MapScreen.loginToFeedback), findsOneWidget);
+    expect(find.byType(LoginScreen), findsOneWidget);
+    expect(find.byType(FeedbackSheet), findsNothing);
+    expect(deps.regions.feedbacks, isEmpty);
   });
 
   testWidgets('logged in draws one circle per region with the API color and radius', (tester) async {

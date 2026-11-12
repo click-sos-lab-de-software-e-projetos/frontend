@@ -3,26 +3,21 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 
-import '../../core/network/session.dart';
 import '../../core/services/geo_point.dart';
 import '../../core/services/location_service.dart';
 import '../../data/models/risk_region.dart';
 import '../../data/repositories/region_repository.dart';
 import '../../data/repositories/repository_exception.dart';
 
-/// Risk regions around the map center. `/mapa/regioes` needs a session, so the
-/// map stays empty while logged out.
+/// Risk regions around the map center. `/mapa/regioes` is public, so the map
+/// loads with or without a session.
 class MapController extends ChangeNotifier {
   MapController({
     required RegionRepository regions,
     required LocationService location,
-    required Session session,
     this.idleDelay = const Duration(milliseconds: 500),
   })  : _regions = regions,
-        _location = location,
-        _session = session {
-    _session.addListener(_onSession);
-  }
+        _location = location;
 
   /// São Paulo (Praça da Sé), used without location permission.
   static const GeoPoint defaultCenter = (lat: -23.5505, lng: -46.6333);
@@ -32,7 +27,6 @@ class MapController extends ChangeNotifier {
 
   final RegionRepository _regions;
   final LocationService _location;
-  final Session _session;
   final Duration idleDelay;
 
   GeoPoint _center = defaultCenter;
@@ -50,7 +44,6 @@ class MapController extends ChangeNotifier {
   List<RiskRegion> get regions => _list;
   bool get loading => _loading;
   String? get error => _error;
-  bool get needsLogin => !_session.isActive;
 
   RiskRegion? get selected {
     for (final r in _list) {
@@ -86,7 +79,6 @@ class MapController extends ChangeNotifier {
   }
 
   Future<void> _load(GeoPoint at) async {
-    if (needsLogin) return;
     final run = ++_run;
     _lastQuery = at;
     _loading = true;
@@ -104,21 +96,6 @@ class MapController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _onSession() {
-    if (_session.isActive) {
-      if (_list.isEmpty && !_loading) _load(_center);
-      return;
-    }
-    _run++;
-    _idle?.cancel();
-    _list = const [];
-    _lastQuery = null;
-    _selectedId = null;
-    _loading = false;
-    _error = null;
-    notifyListeners();
-  }
-
   static double _distanceMeters(GeoPoint a, GeoPoint b) {
     const earth = 6371000.0;
     double rad(double d) => d * pi / 180;
@@ -131,7 +108,6 @@ class MapController extends ChangeNotifier {
   @override
   void dispose() {
     _idle?.cancel();
-    _session.removeListener(_onSession);
     super.dispose();
   }
 }
