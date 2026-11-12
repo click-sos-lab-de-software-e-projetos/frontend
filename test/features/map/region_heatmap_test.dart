@@ -39,6 +39,7 @@ void main() {
     expect(high[0], greaterThan(high[1]));
     expect(low[1], greaterThan(low[0]));
     expect(high[3], greaterThan(low[3]));
+    expect(low[3], greaterThanOrEqualTo(130), reason: 'safe areas must stand out on the map');
   });
 
   test('tiles far from every district are empty', () {

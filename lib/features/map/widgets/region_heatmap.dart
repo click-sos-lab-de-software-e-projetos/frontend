@@ -13,7 +13,12 @@ const _tileSize = 256;
 const _reach = 1.6;
 
 /// Score colors (0, 50, 100) — the same green, yellow and red of the backend bands.
-const _stops = [(0x22, 0xC5, 0x5E), (0xEA, 0xB3, 0x08), (0xEF, 0x44, 0x44)];
+/// The green is a deep one so safe areas still stand out on the light map.
+const _stops = [(0x16, 0xA3, 0x4A), (0xEA, 0xB3, 0x08), (0xEF, 0x44, 0x44)];
+
+/// Opacity at score 0 and the extra opacity at score 100: safe areas stay clearly visible.
+const _minAlpha = 140;
+const _extraAlpha = 70;
 
 /// Draws the districts as a heat map in map tiles.
 ///
@@ -73,7 +78,7 @@ class RiskHeatTiles implements TileProvider {
         out[i] = red;
         out[i + 1] = green;
         out[i + 2] = blue;
-        out[i + 3] = (min(weight, 1.0) * (70 + 130 * heat)).round();
+        out[i + 3] = (min(weight, 1.0) * (_minAlpha + _extraAlpha * heat)).round();
       }
     }
     return out;
