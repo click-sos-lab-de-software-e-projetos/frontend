@@ -1,7 +1,7 @@
 # Alerta Seguro — Frontend (Flutter)
 
 Aplicativo mobile de segurança colaborativa: **mapa de risco** por distrito
-(dados criminais da SSP-SP) com feedback da comunidade + **botão SOS** que envia sua localização para
+(dados criminais da SSP-SP) com alertas da comunidade + **botão SOS** que envia sua localização para
 contatos de confiança via WhatsApp.
 
 > Projeto acadêmico — Laboratório de Software e Projetos.
@@ -12,7 +12,7 @@ contatos de confiança via WhatsApp.
 | # | Tela | Arquivo |
 |---|------|---------|
 | 1 | Mapa de risco por distrito | `lib/features/map/map_screen.dart` |
-| 2 | Feedback por distrito (folha sobre o mapa) | `lib/features/map/widgets/feedback_sheet.dart` |
+| 2 | Alerta da comunidade no mapa, estilo Waze (folha sobre o mapa) | `lib/features/map/widgets/alert_sheet.dart` |
 | 3 | Emergência / SOS (um toque, 5 s para cancelar) | `lib/features/sos/sos_screen.dart` |
 | 4 | Configurar SOS | `lib/features/settings/settings_screen.dart` |
 | 5 | Perfil | `lib/features/profile/profile_screen.dart` |
@@ -151,15 +151,16 @@ O que já usa a API:
 | Contatos de confiança (máx. 3 ativos) | `GET/POST /contatos`, `PATCH/DELETE /contatos/{id}` |
 | Alerta SOS | `POST /sos/alertas` (`latitude`, `longitude`), `GET /sos/alertas/{id}` |
 | Mapa de risco | `GET /mapa/regioes?latitude&longitude&raio=10000` |
-| Feedback do distrito | `POST /mapa/regioes/{id}/feedbacks` (`categoria`, `texto`) |
+| Alertas no mapa (públicos) | `GET /mapa/alertas?latitude=&longitude=&raio=` |
+| Criar alerta | `POST /mapa/alertas` (`categoria`, `texto`, `latitude`, `longitude`) |
 
 - O token JWT fica no armazenamento seguro do aparelho (`SecureTokenStore`): ao abrir o app, a sessão é restaurada na hora e o perfil é buscado em `GET /auth/me` em segundo plano. Ele vale 24 h; quando a API responde 401, a sessão é encerrada e o token apagado. Falha de rede mantém o token. No modo demo (`USE_FAKE_API=true`) o token fica só na memória.
 - S.O.S: um toque inicia uma contagem de 5 s com "Cancelar"; depois o app lê a localização e cria o alerta sem `mensagem` — o backend usa a mensagem salva em Ajustes ou a padrão. O status é consultado a cada 3 s (até 2 min) e o painel mostra enviando, enviado, erro ou "ainda enviando".
 - Antes do primeiro pedido de localização o app explica o motivo. Com permissão negada ou GPS desligado, oferece abrir as configurações ou enviar só pelo WhatsApp (sem link). O WhatsApp (`wa.me`) também fica como opção secundária no painel de status.
 - O backend exige ao menos um contato ativo **com consentimento**; sem isso, a mensagem de erro da API é exibida.
-- Mapa: um círculo por distrito, com centro, raio e cor (`cor_hex`) da API; tocar mostra nome, score e faixa (Baixo < 34, Médio 34–66, Alto ≥ 67). A rota é pública, então o mapa aparece mesmo deslogado; só "Enviar feedback" exige login (deslogado, abre o Login). Ao parar de mover a câmera, recarrega se o centro andou mais de 2 km.
+- Mapa: mapa de calor desenhado em tiles (`widgets/region_heatmap.dart`; a camada de heatmap do Google Maps JS foi descontinuada). Cada distrito espalha calor a partir do centro e do raio da API; a cor vai de verde a vermelho pelo score e vizinhos se misturam. Sem legenda. Tocar dentro de um distrito mostra nome, score e faixa (Baixo < 34, Médio 34–66, Alto ≥ 67). A rota é pública, então o mapa aparece mesmo deslogado; só criar alerta exige login (deslogado, abre o Login). Ao parar de mover a câmera, recarrega se o centro andou mais de 2 km.
 - O mapa nunca pede permissão de localização (MAPM-03): usa a posição só se ela já foi liberada (ex.: pelo S.O.S); senão centraliza na Praça da Sé.
-- Feedback comunitário (MAP-04): no cartão do distrito, "Enviar feedback" abre uma folha com a categoria (Iluminação, Assalto, Assédio, Pouco movimento, Falta de policiamento, Outro) e um texto opcional de até 500 caracteres (obrigatório em "Outro"). O relato fica pendente de análise e não muda o score nem a cor do mapa.
+- Alertas da comunidade (MAP-04, estilo Waze): o botão vermelho no canto inferior direito cria um alerta na localização atual (pede a permissão se ainda der). A folha tem a categoria (Iluminação, Assalto, Assédio, Pouco movimento, Falta de policiamento, Outro) e um texto opcional de até 500 caracteres (obrigatório em "Outro"). Os alertas das últimas 24 horas aparecem como ícones da categoria no mapa; tocar mostra categoria, texto e há quanto tempo. Ninguém vê quem criou, e os alertas não mudam o calor do mapa.
 - Privacidade (Regra 08): "Privacidade e dados" no Perfil (também deslogado) explica o que é guardado, a retenção de 180 dias e a anonimização; o diálogo "Por que a localização?" do S.O.S leva a essa tela. Logado, "Excluir conta" pede duas confirmações (aviso + senha); depois a sessão é encerrada, o token apagado e o Login abre com "Conta excluída.".
 - Perfil: os contatos de confiança (em destaque) vêm logo abaixo do nome. Deslogado, abaixo deles ficam "Fazer login" e, secundário, "Registrar-se"; logado, e-mail e telefone aparecem como texto abaixo do nome, com o lápis de editar e "Desconectar do Dispositivo". O link "Privacidade e dados" fica no fim da tela.
 - Contatos: no Perfil, quem já consentiu tem um X para remover, com confirmação que avisa que, se for adicionado de novo, precisará consentir novamente. Tocar no contato abre "Editar contato" (nome, telefone e "Remover contato", com confirmação). Trocar o telefone de quem já aceitou ou recusou pede confirmação, porque o consentimento é pedido de novo e o contato não recebe alertas até aceitar.

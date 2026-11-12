@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:alerta_seguro/core/services/location_service.dart';
+import 'package:alerta_seguro/data/models/community_alert.dart';
 import 'package:alerta_seguro/data/models/risk_region.dart';
 import 'package:alerta_seguro/data/repositories/region_repository.dart';
 import 'package:alerta_seguro/data/repositories/repository_exception.dart';
@@ -25,6 +26,12 @@ class _ManualRegions extends FakeRegionRepository {
 class _FailingRegions extends FakeRegionRepository {
   @override
   Future<List<RiskRegion>> fetchNearby({required double lat, required double lng, int radiusMeters = 0}) =>
+      Future.error(const RepositoryException('Sem internet.'));
+}
+
+class _FailingAlerts extends FakeRegionRepository {
+  @override
+  Future<List<CommunityAlert>> fetchAlerts({required double lat, required double lng, int radiusMeters = 0}) =>
       Future.error(const RepositoryException('Sem internet.'));
 }
 
@@ -106,5 +113,61 @@ void main() {
 
     c.select(null);
     expect(c.selected, isNull);
+  });
+
+  test('selectAt picks the closest district containing the point, or none', () async {
+    final c = build();
+    await c.init();
+    final target = c.regions[1];
+
+    c.selectAt((lat: target.center.lat + .0001, lng: target.center.lng));
+    expect(c.selected, target);
+
+    c.selectAt((lat: 60, lng: 60));
+    expect(c.selected, isNull);
+  });
+
+  test('a failure loading alerts keeps the regions and shows no error', () async {
+    final c = build(regions: _FailingAlerts());
+
+    await c.init();
+
+    expect(c.regions, isNotEmpty);
+    expect(c.alerts, isEmpty);
+    expect(c.error, isNull);
+  });
+
+  test('alertPosition asks only when it can and returns null without access', () async {
+    final asking = FakeLocationService((lat: 1, lng: 2))..access = LocationAccess.canAsk;
+    final c = build(location: asking);
+    await c.init();
+
+    expect(await c.alertPosition(), (lat: 1, lng: 2));
+    expect(asking.requests, 1);
+    expect(c.locationAllowed, isTrue);
+
+    final denied = FakeLocationService((lat: 1, lng: 2))..access = LocationAccess.deniedForever;
+    expect(await build(location: denied).alertPosition(), isNull);
+    expect(denied.requests, 0);
+  });
+
+  test('added shows the new alert first and selectAlert / select close each other', () async {
+    final c = build();
+    await c.init();
+    final alert = CommunityAlert(
+      id: 'a1',
+      category: AlertCategory.robbery,
+      position: (lat: 0, lng: 0),
+      createdAt: DateTime(2026),
+    );
+
+    c.added(alert);
+    expect(c.alerts.first, alert);
+
+    c.select(c.regions.first.id);
+    c.selectAlert('a1');
+    expect((c.selected, c.selectedAlert), (null, alert));
+    c.select(c.regions.first.id);
+    expect(c.selectedAlert, isNull);
   });
 }

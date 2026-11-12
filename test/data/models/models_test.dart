@@ -1,7 +1,7 @@
 import 'dart:ui';
 
+import 'package:alerta_seguro/data/models/community_alert.dart';
 import 'package:alerta_seguro/data/models/contact.dart';
-import 'package:alerta_seguro/data/models/region_feedback.dart';
 import 'package:alerta_seguro/data/models/risk_region.dart';
 import 'package:alerta_seguro/data/models/sos_alert.dart';
 import 'package:alerta_seguro/data/models/sos_settings.dart';
@@ -146,20 +146,61 @@ void main() {
     ]);
   });
 
-  group('RegionFeedback', () {
-    test('sends the API category and the trimmed text, omitting it when empty', () {
+  group('NewAlert', () {
+    const here = (lat: -23.5, lng: -46.6);
+
+    test('sends the API category, the trimmed text (omitted when empty) and the position', () {
       expect(
-        const RegionFeedback(FeedbackCategory.lighting, '  Rua escura  ').toJson(),
-        {'categoria': 'ILUMINACAO', 'texto': 'Rua escura'},
+        const NewAlert(AlertCategory.lighting, here, '  Rua escura  ').toJson(),
+        {'categoria': 'ILUMINACAO', 'texto': 'Rua escura', 'latitude': -23.5, 'longitude': -46.6},
       );
-      expect(const RegionFeedback(FeedbackCategory.lowPolicing, '  ').toJson(), {'categoria': 'POLICIAMENTO'});
+      expect(
+        const NewAlert(AlertCategory.lowPolicing, here, '  ').toJson(),
+        {'categoria': 'POLICIAMENTO', 'latitude': -23.5, 'longitude': -46.6},
+      );
     });
 
     test('"Outro" needs a text and the text has at most 500 characters', () {
-      expect(const RegionFeedback(FeedbackCategory.other, ' ').error, RegionFeedback.otherNeedsText);
-      expect(RegionFeedback(FeedbackCategory.robbery, 'x' * 501).error, RegionFeedback.tooLong);
-      expect(RegionFeedback(FeedbackCategory.robbery, 'x' * 500).error, isNull);
-      expect(const RegionFeedback(FeedbackCategory.other, 'Buraco').error, isNull);
+      expect(const NewAlert(AlertCategory.other, here, ' ').error, NewAlert.otherNeedsText);
+      expect(NewAlert(AlertCategory.robbery, here, 'x' * 501).error, NewAlert.tooLong);
+      expect(NewAlert(AlertCategory.robbery, here, 'x' * 500).error, isNull);
+      expect(const NewAlert(AlertCategory.other, here, 'Buraco').error, isNull);
+    });
+  });
+
+  group('CommunityAlert', () {
+    test('parses the API response', () {
+      final a = CommunityAlert.fromApi(const {
+        'id': 'a1',
+        'categoria': 'ASSEDIO',
+        'texto': null,
+        'latitude': -23.5,
+        'longitude': -46,
+        'criado_em': '2026-11-12T10:00:00Z',
+      });
+
+      expect(
+        a,
+        CommunityAlert(
+          id: 'a1',
+          category: AlertCategory.harassment,
+          position: (lat: -23.5, lng: -46.0),
+          createdAt: DateTime.utc(2026, 11, 12, 10),
+        ),
+      );
+    });
+
+    test('an unknown category or missing field is a FormatException', () {
+      const ok = {'id': 'a1', 'categoria': 'ASSALTO', 'latitude': 0, 'longitude': 0, 'criado_em': '2026-11-12'};
+      expect(() => CommunityAlert.fromApi(Map.of(ok)..['categoria'] = 'BARULHO'), throwsFormatException);
+      expect(() => CommunityAlert.fromApi(Map.of(ok)..remove('latitude')), throwsFormatException);
+    });
+
+    test('age reads like Waze', () {
+      final t = DateTime(2026, 11, 12, 10);
+      expect(CommunityAlert.age(t, t.add(const Duration(seconds: 30))), 'agora');
+      expect(CommunityAlert.age(t, t.add(const Duration(minutes: 5))), 'há 5 min');
+      expect(CommunityAlert.age(t, t.add(const Duration(hours: 3, minutes: 59))), 'há 3 h');
     });
   });
 }

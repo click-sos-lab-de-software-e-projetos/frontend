@@ -1,12 +1,15 @@
 import 'package:alerta_seguro/core/services/location_service.dart';
+import 'package:alerta_seguro/data/models/community_alert.dart';
 import 'package:alerta_seguro/data/models/risk_region.dart';
 import 'package:alerta_seguro/data/repositories/region_repository.dart';
 import 'package:alerta_seguro/data/repositories/repository_exception.dart';
 import 'package:alerta_seguro/features/auth/login_screen.dart';
 import 'package:alerta_seguro/features/map/map_controller.dart';
 import 'package:alerta_seguro/features/map/map_screen.dart';
-import 'package:alerta_seguro/features/map/widgets/feedback_sheet.dart';
+import 'package:alerta_seguro/features/map/widgets/alert_card.dart';
+import 'package:alerta_seguro/features/map/widgets/alert_sheet.dart';
 import 'package:alerta_seguro/features/map/widgets/region_card.dart';
+import 'package:alerta_seguro/features/map/widgets/region_heatmap.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -16,7 +19,12 @@ import '../../helpers/test_app.dart';
 
 const _screen = MapScreen();
 
+Finder get _alertButton => find.byTooltip('Criar alerta');
+
 GoogleMap _googleMap(WidgetTester tester) => tester.widget<GoogleMap>(find.byType(GoogleMap));
+
+void _tapRegion(WidgetTester tester, RiskRegion region) =>
+    _googleMap(tester).onTap!(LatLng(region.center.lat, region.center.lng));
 
 /// Fails until [failing] is turned off.
 class _FlakyRegions extends FakeRegionRepository {
@@ -37,48 +45,49 @@ void main() {
   testWidgets('logged out still draws the regions', (tester) async {
     final deps = await _pump(tester, TestDeps());
 
-    expect(_googleMap(tester).circles, isNotEmpty);
+    expect(_googleMap(tester).tileOverlays, isNotEmpty);
     expect(deps.regions.requests, hasLength(1));
   });
 
-  testWidgets('logged out, feedback opens the login instead of the sheet', (tester) async {
+  testWidgets('logged out, the alert button opens the login instead of the sheet', (tester) async {
     final deps = await _pump(tester, TestDeps());
-    final region = tester.element(find.byType(MapScreen)).read<MapController>().regions.first;
 
-    _googleMap(tester).circles.firstWhere((c) => c.circleId.value == region.id).onTap!();
-    await tester.pump();
-    await tester.tap(find.text('Enviar feedback'));
+    await tester.tap(_alertButton);
     await tester.pumpAndSettle();
 
-    expect(find.text(MapScreen.loginToFeedback), findsOneWidget);
+    expect(find.text(MapScreen.loginToAlert), findsOneWidget);
     expect(find.byType(LoginScreen), findsOneWidget);
-    expect(find.byType(FeedbackSheet), findsNothing);
-    expect(deps.regions.feedbacks, isEmpty);
+    expect(find.byType(AlertSheet), findsNothing);
+    expect(deps.regions.created, isEmpty);
   });
 
-  testWidgets('logged in draws one circle per region with the API color and radius', (tester) async {
+  testWidgets('draws the regions as one heat overlay, without circles or legend', (tester) async {
     await _pump(tester, TestDeps(loggedIn: true));
     final regions = tester.element(find.byType(MapScreen)).read<MapController>().regions;
 
-    final circles = _googleMap(tester).circles;
-    expect(circles, hasLength(regions.length));
-    final first = circles.firstWhere((c) => c.circleId.value == regions.first.id);
-    expect(first.radius, regions.first.radiusMeters);
-    expect(first.fillColor.toARGB32() & 0xFFFFFF, regions.first.color.toARGB32() & 0xFFFFFF);
-    expect(find.text('Alto'), findsOneWidget);
+    final heat = _googleMap(tester).tileOverlays.single.tileProvider! as RiskHeatTiles;
+    expect(heat.regions, regions);
+    expect(_googleMap(tester).circles, isEmpty);
+    expect(find.text('Alto'), findsNothing);
   });
 
-  testWidgets('tapping a circle shows the district, score and band', (tester) async {
+  testWidgets('tapping a district shows the district, score and band', (tester) async {
     await _pump(tester, TestDeps(loggedIn: true));
     final region = tester.element(find.byType(MapScreen)).read<MapController>().regions.first;
 
-    _googleMap(tester).circles.firstWhere((c) => c.circleId.value == region.id).onTap!();
+    _tapRegion(tester, region);
     await tester.pump();
 
     expect(find.text(region.name), findsOneWidget);
     expect(find.text(RegionCard.summary(region)), findsOneWidget);
 
     await tester.tap(find.byTooltip('Fechar'));
+    await tester.pump();
+    expect(find.text(region.name), findsNothing);
+
+    _tapRegion(tester, region);
+    await tester.pump();
+    _googleMap(tester).onTap!(const LatLng(60, 60));
     await tester.pump();
     expect(find.text(region.name), findsNothing);
   });
@@ -93,7 +102,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Sem internet.'), findsNothing);
-    expect(_googleMap(tester).circles, isNotEmpty);
+    expect(_googleMap(tester).tileOverlays, isNotEmpty);
   });
 
   testWidgets('shows my location only with permission already granted', (tester) async {
@@ -105,25 +114,71 @@ void main() {
     expect(_googleMap(tester).myLocationEnabled, isFalse);
   });
 
-  testWidgets('feedback from the district card thanks and leaves the map unchanged', (tester) async {
-    final deps = await _pump(tester, TestDeps(loggedIn: true));
-    final region = tester.element(find.byType(MapScreen)).read<MapController>().regions.first;
-    final circlesBefore = _googleMap(tester).circles;
-    expect(find.text('Registrar ocorrência'), findsNothing);
+  testWidgets('the alert button creates an alert at my position and pins it on the map', (tester) async {
+    final deps = await _pump(tester, TestDeps(loggedIn: true, location: FakeLocationService((lat: 1, lng: 2))));
+    final heatBefore = _googleMap(tester).tileOverlays;
+    expect(_googleMap(tester).markers, isEmpty);
 
-    _googleMap(tester).circles.firstWhere((c) => c.circleId.value == region.id).onTap!();
-    await tester.pump();
-    await tester.tap(find.text('Enviar feedback'));
+    await tester.tap(_alertButton);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Iluminação'));
+    await tester.tap(find.text('Assalto'));
     await tester.pump();
-    await tester.tap(find.widgetWithText(FilledButton, 'Enviar'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Alertar aqui'));
     await tester.pumpAndSettle();
 
-    expect(deps.regions.feedbacks.single.regionId, region.id);
-    expect(find.text(MapScreen.thanks), findsOneWidget);
-    expect(find.text(FeedbackSheet.pendingNotice), findsNothing);
-    expect(_googleMap(tester).circles, circlesBefore);
-    expect(deps.regions.requests, hasLength(1));
+    expect(deps.regions.created, [const NewAlert(AlertCategory.robbery, (lat: 1, lng: 2))]);
+    expect(find.text(MapScreen.created), findsOneWidget);
+    final marker = _googleMap(tester).markers.single;
+    expect(marker.position, const LatLng(1, 2));
+    expect(_googleMap(tester).tileOverlays, heatBefore);
+
+    marker.onTap!();
+    await tester.pump();
+    expect(find.byType(AlertCard), findsOneWidget);
+    expect(find.text('Assalto'), findsOneWidget);
+    expect(find.textContaining('agora'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Fechar'));
+    await tester.pump();
+    expect(find.byType(AlertCard), findsNothing);
+  });
+
+  testWidgets('without location the alert button explains and opens no sheet', (tester) async {
+    final deps = await _pump(
+      tester,
+      TestDeps(
+        loggedIn: true,
+        location: FakeLocationService((lat: 1, lng: 2))
+          ..access = LocationAccess.denied
+          ..afterRequest = LocationAccess.denied,
+      ),
+    );
+
+    await tester.tap(_alertButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text(MapScreen.needsLocation), findsOneWidget);
+    expect(find.byType(AlertSheet), findsNothing);
+    expect(deps.regions.created, isEmpty);
+  });
+
+  testWidgets('shows the alerts of the area as markers', (tester) async {
+    final regions = FakeRegionRepository()
+      ..alerts.add(
+        CommunityAlert(
+          id: 'a1',
+          category: AlertCategory.harassment,
+          text: 'Cuidado na saída do metrô',
+          position: (lat: 3, lng: 4),
+          createdAt: DateTime.now(),
+        ),
+      );
+    await _pump(tester, TestDeps(regions: regions));
+
+    final marker = _googleMap(tester).markers.single;
+    expect(marker.markerId, const MarkerId('a1'));
+    marker.onTap!();
+    await tester.pump();
+    expect(find.text('Cuidado na saída do metrô'), findsOneWidget);
   });
 }

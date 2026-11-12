@@ -4,21 +4,25 @@ import 'package:provider/provider.dart';
 
 import '../../app/theme.dart';
 import '../../core/services/geo_point.dart';
+import '../../data/models/community_alert.dart';
 import '../../data/models/risk_region.dart';
 import '../../shared/widgets/app_card.dart';
 import '../auth/auth_controller.dart';
 import '../auth/login_screen.dart';
 import 'map_controller.dart';
-import 'widgets/feedback_sheet.dart';
+import 'widgets/alert_card.dart';
+import 'widgets/alert_markers.dart';
+import 'widgets/alert_sheet.dart';
 import 'widgets/region_card.dart';
-import 'widgets/region_circles.dart';
+import 'widgets/region_heatmap.dart';
 
-/// TELA 1 — Mapa de risco por distrito (`/mapa/regioes`).
+/// TELA 1 — Mapa de risco por distrito (`/mapa/regioes`) com os alertas da comunidade (`/mapa/alertas`).
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
 
-  static const thanks = 'Obrigado! Seu relato fica pendente de análise e não muda o mapa.';
-  static const loginToFeedback = 'Entre na sua conta para enviar feedback.';
+  static const created = 'Alerta criado. Ele fica no mapa por 24 horas.';
+  static const loginToAlert = 'Entre na sua conta para criar um alerta.';
+  static const needsLocation = 'Ative a localização para criar um alerta onde você está.';
 
   @override
   State<MapScreen> createState() => _MapScreenState();
@@ -27,11 +31,33 @@ class MapScreen extends StatefulWidget {
 class _MapScreenState extends State<MapScreen> {
   GoogleMapController? _map;
   GeoPoint? _camera;
+  Map<AlertCategory, BitmapDescriptor> _icons = const {};
+  List<RiskRegion>? _heatRegions;
+  late TileOverlay _heat;
+
+  /// Same overlay while the regions don't change, so tiles are not repainted on every build.
+  TileOverlay _heatFor(List<RiskRegion> regions) {
+    if (!identical(regions, _heatRegions)) {
+      _heatRegions = regions;
+      _heat = riskHeatOverlay(regions);
+    }
+    return _heat;
+  }
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _init());
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_icons.isEmpty) {
+      loadAlertIcons(MediaQuery.devicePixelRatioOf(context)).then((icons) {
+        if (mounted) setState(() => _icons = icons);
+      });
+    }
   }
 
   Future<void> _init() async {
@@ -41,16 +67,24 @@ class _MapScreenState extends State<MapScreen> {
     await _map?.animateCamera(CameraUpdate.newLatLng(_latLng(controller.center)));
   }
 
-  Future<void> _feedback(RiskRegion region) async {
+  Future<void> _createAlert() async {
     final messenger = ScaffoldMessenger.of(context);
+    final map = context.read<MapController>();
     if (!context.read<AuthController>().loggedIn) {
-      messenger.showSnackBar(const SnackBar(content: Text(MapScreen.loginToFeedback)));
+      messenger.showSnackBar(const SnackBar(content: Text(MapScreen.loginToAlert)));
       await Navigator.push(context, MaterialPageRoute<void>(builder: (_) => const LoginScreen()));
       if (!mounted || !context.read<AuthController>().loggedIn) return;
     }
-    if (await showFeedbackSheet(context, region)) {
-      messenger.showSnackBar(const SnackBar(content: Text(MapScreen.thanks)));
+    final position = await map.alertPosition();
+    if (!mounted) return;
+    if (position == null) {
+      messenger.showSnackBar(const SnackBar(content: Text(MapScreen.needsLocation)));
+      return;
     }
+    final created = await showAlertSheet(context, position);
+    if (created == null) return;
+    map.added(created);
+    messenger.showSnackBar(const SnackBar(content: Text(MapScreen.created)));
   }
 
   static LatLng _latLng(GeoPoint p) => LatLng(p.lat, p.lng);
@@ -65,6 +99,7 @@ class _MapScreenState extends State<MapScreen> {
   Widget build(BuildContext context) {
     final map = context.watch<MapController>();
     final selected = map.selected;
+    final selectedAlert = map.selectedAlert;
     return Scaffold(
       body: Stack(
         children: [
@@ -73,8 +108,9 @@ class _MapScreenState extends State<MapScreen> {
             myLocationEnabled: map.locationAllowed,
             myLocationButtonEnabled: false,
             zoomControlsEnabled: false,
-            circles: buildRegionCircles(map.regions, onTap: map.select),
-            onTap: (_) => map.select(null),
+            tileOverlays: {_heatFor(map.regions)},
+            markers: buildAlertMarkers(map.alerts, _icons, onTap: map.selectAlert),
+            onTap: (p) => map.selectAt((lat: p.latitude, lng: p.longitude)),
             onCameraMove: (p) => _camera = (lat: p.target.latitude, lng: p.target.longitude),
             onCameraIdle: () {
               final camera = _camera;
@@ -88,22 +124,15 @@ class _MapScreenState extends State<MapScreen> {
               child: Column(
                 children: [
                   AppCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Row(
                       children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.shield_outlined, color: AppColors.red),
-                            const SizedBox(width: 10),
-                            const Expanded(
-                              child: Text('Mapa de risco por distrito', style: TextStyle(fontWeight: FontWeight.w700)),
-                            ),
-                            if (map.loading)
-                              const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
-                          ],
+                        const Icon(Icons.shield_outlined, color: AppColors.red),
+                        const SizedBox(width: 10),
+                        const Expanded(
+                          child: Text('Mapa de risco por distrito', style: TextStyle(fontWeight: FontWeight.w700)),
                         ),
-                        const SizedBox(height: 8),
-                        const _Legend(),
+                        if (map.loading)
+                          const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
                       ],
                     ),
                   ),
@@ -111,12 +140,24 @@ class _MapScreenState extends State<MapScreen> {
                   if (map.error == null && !map.loading && map.regions.isEmpty)
                     const _Notice(text: 'Nenhuma região de risco por aqui.'),
                   const Spacer(),
-                  if (selected != null)
-                    RegionCard(
-                      region: selected,
-                      onClose: () => map.select(null),
-                      onFeedback: () => _feedback(selected),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: FloatingActionButton(
+                      tooltip: 'Criar alerta',
+                      backgroundColor: AppColors.red,
+                      foregroundColor: Colors.white,
+                      onPressed: _createAlert,
+                      child: const Icon(Icons.campaign, size: 30),
                     ),
+                  ),
+                  if (selected != null) ...[
+                    const SizedBox(height: 12),
+                    RegionCard(region: selected, onClose: () => map.select(null)),
+                  ],
+                  if (selectedAlert != null) ...[
+                    const SizedBox(height: 12),
+                    AlertCard(alert: selectedAlert, onClose: () => map.selectAlert(null)),
+                  ],
                 ],
               ),
             ),
@@ -125,22 +166,6 @@ class _MapScreenState extends State<MapScreen> {
       ),
     );
   }
-}
-
-class _Legend extends StatelessWidget {
-  const _Legend();
-
-  @override
-  Widget build(BuildContext context) => Row(
-        children: [
-          for (final band in RiskBand.values) ...[
-            Icon(Icons.circle, size: 10, color: band.color),
-            const SizedBox(width: 4),
-            Text(band.label, style: const TextStyle(fontSize: 11, color: Colors.white70)),
-            const SizedBox(width: 12),
-          ],
-        ],
-      );
 }
 
 class _Notice extends StatelessWidget {

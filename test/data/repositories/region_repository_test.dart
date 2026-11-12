@@ -1,6 +1,6 @@
 import 'dart:ui';
 
-import 'package:alerta_seguro/data/models/region_feedback.dart';
+import 'package:alerta_seguro/data/models/community_alert.dart';
 import 'package:alerta_seguro/data/models/risk_region.dart';
 import 'package:alerta_seguro/data/repositories/region_repository.dart';
 import 'package:alerta_seguro/data/repositories/repository_exception.dart';
@@ -61,33 +61,59 @@ void main() {
     });
   });
 
-  group('sendFeedback', () {
-    const feedback = RegionFeedback(FeedbackCategory.lighting, 'Rua escura');
+  group('alerts', () {
+    const json = {
+      'id': 'a1',
+      'categoria': 'ILUMINACAO',
+      'texto': 'Rua escura',
+      'latitude': -23.5,
+      'longitude': -46.6,
+      'criado_em': '2026-11-12T10:00:00Z',
+    };
+    final alert = CommunityAlert(
+      id: 'a1',
+      category: AlertCategory.lighting,
+      text: 'Rua escura',
+      position: (lat: -23.5, lng: -46.6),
+      createdAt: DateTime.utc(2026, 11, 12, 10),
+    );
 
-    test('posts the feedback to the region', () async {
-      final adapter = StubDioAdapter(status: 201, body: {'id': 'f1', 'status': 'PENDENTE'});
-      await HttpRegionRepository(stubDio(adapter)).sendFeedback('3550308 se', feedback);
+    test('fetchAlerts gets /mapa/alertas without a session', () async {
+      final adapter = StubDioAdapter(body: [json]);
 
-      expect(adapter.requests.single.method, 'POST');
-      expect(adapter.requests.single.path, '/mapa/regioes/3550308%20se/feedbacks');
-      expect(adapter.requests.single.data, {'categoria': 'ILUMINACAO', 'texto': 'Rua escura'});
+      expect(await HttpRegionRepository(stubDio(adapter)).fetchAlerts(lat: -23.5, lng: -46.6), [alert]);
+      expect(adapter.requests.single.path, '/mapa/alertas');
+      expect(adapter.requests.single.queryParameters, {'latitude': -23.5, 'longitude': -46.6, 'raio': 10000});
+      expect(adapter.requests.single.extra['public'], isTrue);
     });
 
-    test('explains 404 and 422', () {
+    test('createAlert posts the alert and returns what was saved', () async {
+      final adapter = StubDioAdapter(status: 201, body: json);
+      const created = NewAlert(AlertCategory.lighting, (lat: -23.5, lng: -46.6), 'Rua escura');
+
+      expect(await HttpRegionRepository(stubDio(adapter)).createAlert(created), alert);
+      expect(adapter.requests.single.method, 'POST');
+      expect(adapter.requests.single.path, '/mapa/alertas');
+      expect(adapter.requests.single.data, created.toJson());
+    });
+
+    test('createAlert explains 422', () {
+      const created = NewAlert(AlertCategory.robbery, (lat: 0, lng: 0));
       expect(
-        HttpRegionRepository(stubDio(StubDioAdapter(status: 404))).sendFeedback('x', feedback),
-        throwsA(isA<RepositoryException>().having((e) => e.message, 'message', 'Região não encontrada.')),
-      );
-      expect(
-        HttpRegionRepository(stubDio(StubDioAdapter(status: 422))).sendFeedback('x', feedback),
+        HttpRegionRepository(stubDio(StubDioAdapter(status: 422))).createAlert(created),
         throwsA(isA<RepositoryException>().having((e) => e.message, 'message', contains('500'))),
       );
     });
 
-    test('the fake records what was sent', () async {
+    test('the fake records what was created and lists it first', () async {
       final repo = FakeRegionRepository();
-      await repo.sendFeedback('r1', feedback);
-      expect(repo.feedbacks, [(regionId: 'r1', feedback: feedback)]);
+      const created = NewAlert(AlertCategory.robbery, (lat: 1, lng: 2), ' ');
+
+      final saved = await repo.createAlert(created);
+
+      expect(repo.created, [created]);
+      expect((saved.category, saved.position, saved.text), (AlertCategory.robbery, (lat: 1.0, lng: 2.0), null));
+      expect(await repo.fetchAlerts(lat: 0, lng: 0), [saved]);
     });
   });
 

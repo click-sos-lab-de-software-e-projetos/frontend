@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../../core/network/api_client.dart';
-import '../models/region_feedback.dart';
+import '../models/community_alert.dart';
 import '../models/risk_region.dart';
 import 'repository_exception.dart';
 
@@ -10,8 +10,11 @@ abstract interface class RegionRepository {
   /// Public: works without a session.
   Future<List<RiskRegion>> fetchNearby({required double lat, required double lng, int radiusMeters = maxRadius});
 
-  /// Sends a community feedback about the region; it stays pending and does not change the map.
-  Future<void> sendFeedback(String regionId, RegionFeedback feedback);
+  /// Community alerts of the last 24 hours within [radiusMeters], newest first. Public.
+  Future<List<CommunityAlert>> fetchAlerts({required double lat, required double lng, int radiusMeters = maxRadius});
+
+  /// Creates an alert at the user's position; it does not change the risk map. Needs a session.
+  Future<CommunityAlert> createAlert(NewAlert alert);
 
   /// Largest radius the backend accepts.
   static const maxRadius = 10000;
@@ -45,20 +48,39 @@ class HttpRegionRepository implements RegionRepository {
   }
 
   @override
-  Future<void> sendFeedback(String regionId, RegionFeedback feedback) async {
+  Future<List<CommunityAlert>> fetchAlerts({
+    required double lat,
+    required double lng,
+    int radiusMeters = RegionRepository.maxRadius,
+  }) async {
     try {
-      await _dio.post<void>('/mapa/regioes/${Uri.encodeComponent(regionId)}/feedbacks', data: feedback.toJson());
+      final r = await _dio.get<List<dynamic>>(
+        '/mapa/alertas',
+        queryParameters: {'latitude': lat, 'longitude': lng, 'raio': radiusMeters},
+        options: AuthInterceptor.public,
+      );
+      return (r.data ?? const [])
+          .map((e) => CommunityAlert.fromApi(Map<String, dynamic>.from(e as Map)))
+          .toList(growable: false);
     } on DioException catch (e) {
-      switch (e.response?.statusCode) {
-        case 404:
-          throw RepositoryException('Região não encontrada.', cause: e);
-        case 422:
-          throw RepositoryException(
-            'Confira a categoria e o texto (até ${RegionFeedback.maxLength} caracteres).',
-            cause: e,
-          );
+      throw RepositoryException.fromDio(e, 'Não foi possível carregar os alertas.');
+    } on FormatException catch (e) {
+      throw RepositoryException('Resposta inválida do servidor.', cause: e);
+    }
+  }
+
+  @override
+  Future<CommunityAlert> createAlert(NewAlert alert) async {
+    try {
+      final r = await _dio.post<Map<String, dynamic>>('/mapa/alertas', data: alert.toJson());
+      return CommunityAlert.fromApi(r.data!);
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 422) {
+        throw RepositoryException('Confira a categoria e o texto (até ${NewAlert.maxLength} caracteres).', cause: e);
       }
-      throw RepositoryException.fromDio(e, 'Não foi possível enviar o feedback.');
+      throw RepositoryException.fromDio(e, 'Não foi possível criar o alerta.');
+    } on FormatException catch (e) {
+      throw RepositoryException('Resposta inválida do servidor.', cause: e);
     }
   }
 }
@@ -66,11 +88,32 @@ class HttpRegionRepository implements RegionRepository {
 /// A few districts around the requested point (demo mode).
 class FakeRegionRepository implements RegionRepository {
   final List<({double lat, double lng})> requests = [];
-  final List<({String regionId, RegionFeedback feedback})> feedbacks = [];
+  final List<NewAlert> created = [];
+
+  /// Alerts returned by [fetchAlerts]; [createAlert] adds to it.
+  final List<CommunityAlert> alerts = [];
 
   @override
-  Future<void> sendFeedback(String regionId, RegionFeedback feedback) async =>
-      feedbacks.add((regionId: regionId, feedback: feedback));
+  Future<List<CommunityAlert>> fetchAlerts({
+    required double lat,
+    required double lng,
+    int radiusMeters = RegionRepository.maxRadius,
+  }) async =>
+      List.of(alerts);
+
+  @override
+  Future<CommunityAlert> createAlert(NewAlert alert) async {
+    created.add(alert);
+    final saved = CommunityAlert(
+      id: 'alerta-${created.length}',
+      category: alert.category,
+      text: alert.text.trim().isEmpty ? null : alert.text.trim(),
+      position: alert.position,
+      createdAt: DateTime.now(),
+    );
+    alerts.insert(0, saved);
+    return saved;
+  }
 
   static const _districts = [
     ('Sé', 0.0, 0.0, 82),

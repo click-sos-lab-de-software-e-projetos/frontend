@@ -2,35 +2,33 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../app/theme.dart';
-import '../../../data/models/region_feedback.dart';
-import '../../../data/models/risk_region.dart';
+import '../../../core/services/geo_point.dart';
+import '../../../data/models/community_alert.dart';
 import '../../../data/repositories/region_repository.dart';
 import '../../../data/repositories/repository_exception.dart';
 
-/// Opens the feedback form for [region]. Returns true when it was sent.
-Future<bool> showFeedbackSheet(BuildContext context, RiskRegion region) async =>
-    await showModalBottomSheet<bool>(
+/// Opens the form that creates an alert at [position]. Returns the created alert, or null.
+Future<CommunityAlert?> showAlertSheet(BuildContext context, GeoPoint position) => showModalBottomSheet<CommunityAlert>(
       context: context,
       isScrollControlled: true,
       backgroundColor: AppColors.card,
-      builder: (_) => FeedbackSheet(region: region),
-    ) ??
-    false;
+      builder: (_) => AlertSheet(position: position),
+    );
 
-class FeedbackSheet extends StatefulWidget {
-  const FeedbackSheet({super.key, required this.region});
+class AlertSheet extends StatefulWidget {
+  const AlertSheet({super.key, required this.position});
 
-  final RiskRegion region;
+  final GeoPoint position;
 
-  static const pendingNotice = 'Seu relato fica pendente de análise e não muda o mapa.';
+  static const notice = 'O alerta fica no mapa, na sua localização atual, por 24 horas. Ninguém vê quem criou.';
 
   @override
-  State<FeedbackSheet> createState() => _FeedbackSheetState();
+  State<AlertSheet> createState() => _AlertSheetState();
 }
 
-class _FeedbackSheetState extends State<FeedbackSheet> {
+class _AlertSheetState extends State<AlertSheet> {
   final _text = TextEditingController();
-  FeedbackCategory? _category;
+  AlertCategory? _category;
   String? _error;
   bool _sending = false;
 
@@ -41,8 +39,8 @@ class _FeedbackSheetState extends State<FeedbackSheet> {
   }
 
   Future<void> _send() async {
-    final feedback = RegionFeedback(_category!, _text.text);
-    final invalid = feedback.error;
+    final alert = NewAlert(_category!, widget.position, _text.text);
+    final invalid = alert.error;
     if (invalid != null) {
       setState(() => _error = invalid);
       return;
@@ -52,8 +50,8 @@ class _FeedbackSheetState extends State<FeedbackSheet> {
       _error = null;
     });
     try {
-      await context.read<RegionRepository>().sendFeedback(widget.region.id, feedback);
-      if (mounted) Navigator.pop(context, true);
+      final created = await context.read<RegionRepository>().createAlert(alert);
+      if (mounted) Navigator.pop(context, created);
     } on RepositoryException catch (e) {
       if (mounted) {
         setState(() {
@@ -72,19 +70,17 @@ class _FeedbackSheetState extends State<FeedbackSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                'Feedback sobre ${widget.region.name}',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-              ),
+              const Text('O que está acontecendo aqui?', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
               const SizedBox(height: 4),
-              const Text(FeedbackSheet.pendingNotice, style: TextStyle(fontSize: 12, color: Colors.white54)),
+              const Text(AlertSheet.notice, style: TextStyle(fontSize: 12, color: Colors.white54)),
               const SizedBox(height: 16),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  for (final c in FeedbackCategory.values)
+                  for (final c in AlertCategory.values)
                     ChoiceChip(
+                      avatar: Icon(c.icon, size: 18),
                       label: Text(c.label),
                       selected: _category == c,
                       onSelected: _sending ? null : (_) => setState(() => _category = c),
@@ -95,11 +91,11 @@ class _FeedbackSheetState extends State<FeedbackSheet> {
               TextField(
                 controller: _text,
                 enabled: !_sending,
-                maxLength: RegionFeedback.maxLength,
+                maxLength: NewAlert.maxLength,
                 maxLines: 4,
                 minLines: 2,
                 decoration: InputDecoration(
-                  hintText: _category == FeedbackCategory.other ? 'Descreva o problema' : 'Detalhes (opcional)',
+                  hintText: _category == AlertCategory.other ? 'Descreva o problema' : 'Detalhes (opcional)',
                 ),
               ),
               if (_error != null)
@@ -111,7 +107,7 @@ class _FeedbackSheetState extends State<FeedbackSheet> {
                 onPressed: _category == null || _sending ? null : _send,
                 child: _sending
                     ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Text('Enviar'),
+                    : const Text('Alertar aqui'),
               ),
             ],
           ),

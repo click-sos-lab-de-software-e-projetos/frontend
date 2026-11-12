@@ -1,38 +1,29 @@
-import 'package:alerta_seguro/data/models/region_feedback.dart';
-import 'package:alerta_seguro/data/models/risk_region.dart';
+import 'package:alerta_seguro/data/models/community_alert.dart';
 import 'package:alerta_seguro/data/repositories/region_repository.dart';
 import 'package:alerta_seguro/data/repositories/repository_exception.dart';
-import 'package:alerta_seguro/features/map/widgets/feedback_sheet.dart';
+import 'package:alerta_seguro/features/map/widgets/alert_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/test_app.dart';
 
-const _se = RiskRegion(
-  id: 'se',
-  name: 'Sé',
-  center: (lat: 0, lng: 0),
-  score: 80,
-  color: Color(0xFFEF4444),
-  radiusMeters: 1,
-);
+const _here = (lat: -23.5, lng: -46.6);
 
-class _FailingFeedback extends FakeRegionRepository {
+class _FailingAlerts extends FakeRegionRepository {
   @override
-  Future<void> sendFeedback(String regionId, RegionFeedback feedback) =>
-      Future.error(const RepositoryException('Região não encontrada.'));
+  Future<CommunityAlert> createAlert(NewAlert alert) => Future.error(const RepositoryException('Sem conexão.'));
 }
 
 /// Opens the sheet from a button and keeps what it returned.
-Future<List<bool>> _open(WidgetTester tester, {FakeRegionRepository? regions}) async {
-  final results = <bool>[];
+Future<List<CommunityAlert?>> _open(WidgetTester tester, {FakeRegionRepository? regions}) async {
+  final results = <CommunityAlert?>[];
   await pumpTestApp(
     tester,
     deps: TestDeps(loggedIn: true, regions: regions),
     home: Scaffold(
       body: Builder(
         builder: (context) => TextButton(
-          onPressed: () async => results.add(await showFeedbackSheet(context, _se)),
+          onPressed: () async => results.add(await showAlertSheet(context, _here)),
           child: const Text('abrir'),
         ),
       ),
@@ -43,14 +34,13 @@ Future<List<bool>> _open(WidgetTester tester, {FakeRegionRepository? regions}) a
   return results;
 }
 
-Finder get _send => find.widgetWithText(FilledButton, 'Enviar');
+Finder get _send => find.widgetWithText(FilledButton, 'Alertar aqui');
 
 void main() {
-  testWidgets('shows the district and the pending notice; send needs a category', (tester) async {
+  testWidgets('shows the 24 h notice; sending needs a category', (tester) async {
     await _open(tester);
 
-    expect(find.textContaining('Sé'), findsWidgets);
-    expect(find.text(FeedbackSheet.pendingNotice), findsOneWidget);
+    expect(find.text(AlertSheet.notice), findsOneWidget);
     expect(tester.widget<FilledButton>(_send).onPressed, isNull);
   });
 
@@ -63,11 +53,11 @@ void main() {
     await tester.tap(_send);
     await tester.pump();
 
-    expect(find.text(RegionFeedback.otherNeedsText), findsOneWidget);
-    expect(regions.feedbacks, isEmpty);
+    expect(find.text(NewAlert.otherNeedsText), findsOneWidget);
+    expect(regions.created, isEmpty);
   });
 
-  testWidgets('sends the category and text for the region and closes', (tester) async {
+  testWidgets('creates the alert at the given position and returns it', (tester) async {
     final regions = FakeRegionRepository();
     final results = await _open(tester, regions: regions);
 
@@ -77,23 +67,21 @@ void main() {
     await tester.tap(_send);
     await tester.pumpAndSettle();
 
-    expect(regions.feedbacks, [
-      (regionId: 'se', feedback: const RegionFeedback(FeedbackCategory.lighting, 'Rua escura')),
-    ]);
-    expect(results, [true]);
-    expect(find.text(FeedbackSheet.pendingNotice), findsNothing);
+    expect(regions.created, [const NewAlert(AlertCategory.lighting, _here, 'Rua escura')]);
+    expect(results, [regions.alerts.single]);
+    expect(find.text(AlertSheet.notice), findsNothing);
   });
 
   testWidgets('a failure keeps the sheet open with the message', (tester) async {
-    final results = await _open(tester, regions: _FailingFeedback());
+    final results = await _open(tester, regions: _FailingAlerts());
 
     await tester.tap(find.text('Assalto'));
     await tester.pump();
     await tester.tap(_send);
     await tester.pumpAndSettle();
 
-    expect(find.text('Região não encontrada.'), findsOneWidget);
-    expect(find.text(FeedbackSheet.pendingNotice), findsOneWidget);
+    expect(find.text('Sem conexão.'), findsOneWidget);
+    expect(find.text(AlertSheet.notice), findsOneWidget);
     expect(results, isEmpty);
   });
 }
