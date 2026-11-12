@@ -121,6 +121,13 @@ class _HeatTile extends ImageProvider<_HeatTile> {
 
   Future<ImageInfo> _load() {
     final pixels = RiskHeatTiles.heatPixels(regions, x, y, zoom) ?? Uint8List(_tileSize * _tileSize * 4);
+    // decodeImageFromPixels expects premultiplied alpha; straight colors would render washed out.
+    for (var i = 0; i < pixels.length; i += 4) {
+      final a = pixels[i + 3];
+      pixels[i] = pixels[i] * a ~/ 255;
+      pixels[i + 1] = pixels[i + 1] * a ~/ 255;
+      pixels[i + 2] = pixels[i + 2] * a ~/ 255;
+    }
     final done = Completer<ImageInfo>();
     ui.decodeImageFromPixels(
       pixels,
