@@ -1,9 +1,9 @@
 import 'dart:ui';
 
-import 'package:alerta_seguro/data/models/community_alert.dart';
-import 'package:alerta_seguro/data/models/risk_region.dart';
-import 'package:alerta_seguro/data/repositories/region_repository.dart';
-import 'package:alerta_seguro/data/repositories/repository_exception.dart';
+import 'package:click_sos/data/models/community_alert.dart';
+import 'package:click_sos/data/models/risk_region.dart';
+import 'package:click_sos/data/repositories/region_repository.dart';
+import 'package:click_sos/data/repositories/repository_exception.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/stub_dio_adapter.dart';

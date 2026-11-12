@@ -1,10 +1,10 @@
-import 'package:alerta_seguro/data/fakes/demo_seed.dart';
-import 'package:alerta_seguro/data/models/contact.dart';
-import 'package:alerta_seguro/data/repositories/contact_repository.dart';
-import 'package:alerta_seguro/data/repositories/repository_exception.dart';
-import 'package:alerta_seguro/features/auth/auth_controller.dart';
-import 'package:alerta_seguro/features/contacts/add_contact_screen.dart';
-import 'package:alerta_seguro/features/profile/profile_screen.dart';
+import 'package:click_sos/data/fakes/demo_seed.dart';
+import 'package:click_sos/data/models/contact.dart';
+import 'package:click_sos/data/repositories/contact_repository.dart';
+import 'package:click_sos/data/repositories/repository_exception.dart';
+import 'package:click_sos/features/auth/auth_controller.dart';
+import 'package:click_sos/features/contacts/add_contact_screen.dart';
+import 'package:click_sos/features/profile/profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';

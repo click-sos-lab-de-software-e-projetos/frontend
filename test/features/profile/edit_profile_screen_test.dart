@@ -1,8 +1,8 @@
-import 'package:alerta_seguro/data/models/user_profile.dart';
-import 'package:alerta_seguro/data/repositories/auth_repository.dart';
-import 'package:alerta_seguro/data/repositories/repository_exception.dart';
-import 'package:alerta_seguro/features/profile/edit_profile_screen.dart';
-import 'package:alerta_seguro/features/profile/profile_controller.dart';
+import 'package:click_sos/data/models/user_profile.dart';
+import 'package:click_sos/data/repositories/auth_repository.dart';
+import 'package:click_sos/data/repositories/repository_exception.dart';
+import 'package:click_sos/features/profile/edit_profile_screen.dart';
+import 'package:click_sos/features/profile/profile_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';

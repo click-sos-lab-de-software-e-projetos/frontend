@@ -1,4 +1,4 @@
-package com.example.alerta_seguro
+package com.clicksos.app
 
 import io.flutter.embedding.android.FlutterActivity
 

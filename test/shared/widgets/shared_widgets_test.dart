@@ -1,9 +1,9 @@
-import 'package:alerta_seguro/app/theme.dart';
-import 'package:alerta_seguro/shared/widgets/app_card.dart';
-import 'package:alerta_seguro/shared/widgets/app_text_field.dart';
-import 'package:alerta_seguro/shared/widgets/outline_action_button.dart';
-import 'package:alerta_seguro/shared/widgets/page_header.dart';
-import 'package:alerta_seguro/shared/widgets/section_label.dart';
+import 'package:click_sos/app/theme.dart';
+import 'package:click_sos/shared/widgets/app_card.dart';
+import 'package:click_sos/shared/widgets/app_text_field.dart';
+import 'package:click_sos/shared/widgets/outline_action_button.dart';
+import 'package:click_sos/shared/widgets/page_header.dart';
+import 'package:click_sos/shared/widgets/section_label.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

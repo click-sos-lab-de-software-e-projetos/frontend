@@ -51,7 +51,7 @@ class SosController extends ChangeNotifier {
 
   static const notLoggedIn = 'Entre na sua conta (aba Perfil) para enviar o alerta.';
   static const noLocation = 'Localização indisponível: o alerta não foi enviado ao servidor.';
-  static const whatsAppDefault = '[Alerta Seguro] Preciso de ajuda urgente!';
+  static const whatsAppDefault = '[Click S.O.S] Preciso de ajuda urgente!';
 
   final int countdownSeconds;
   final AlertRepository _alerts;

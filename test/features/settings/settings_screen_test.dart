@@ -1,7 +1,7 @@
-import 'package:alerta_seguro/data/models/contact.dart';
-import 'package:alerta_seguro/features/contacts/add_contact_screen.dart';
-import 'package:alerta_seguro/features/contacts/contacts_controller.dart';
-import 'package:alerta_seguro/features/settings/settings_screen.dart';
+import 'package:click_sos/data/models/contact.dart';
+import 'package:click_sos/features/contacts/add_contact_screen.dart';
+import 'package:click_sos/features/contacts/contacts_controller.dart';
+import 'package:click_sos/features/settings/settings_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';

@@ -1,4 +1,4 @@
-name: alerta_seguro
+name: click_sos
 description: Mapa de calor colaborativo de segurança + botão SOS via WhatsApp.
 publish_to: none
 version: 1.0.0+1
@@ -7,12 +7,13 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  google_maps_flutter: ^2.9.0   # Google Maps SDK
   geolocator: ^13.0.1           # usa o FusedLocationProviderClient no Android
   dio: ^5.7.0                   # cliente HTTP
   url_launcher: ^6.3.1          # abre o WhatsApp (wa.me)
   provider: ^6.1.5+1
   flutter_secure_storage: ^11.2.0
+  flutter_map: ^8.3.2
+  latlong2: ^0.10.1
 dev_dependencies:
   flutter_test:
     sdk: flutter

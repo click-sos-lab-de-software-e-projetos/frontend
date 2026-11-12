@@ -1,4 +1,4 @@
-import 'package:alerta_seguro/core/services/location_service.dart';
+import 'package:click_sos/core/services/location_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

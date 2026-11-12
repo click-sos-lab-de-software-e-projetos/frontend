@@ -1,10 +1,10 @@
-import 'package:alerta_seguro/core/services/location_service.dart';
-import 'package:alerta_seguro/data/models/contact.dart';
-import 'package:alerta_seguro/data/models/sos_alert.dart';
-import 'package:alerta_seguro/features/profile/privacy_screen.dart';
-import 'package:alerta_seguro/features/sos/sos_controller.dart';
-import 'package:alerta_seguro/features/sos/sos_screen.dart';
-import 'package:alerta_seguro/features/sos/widgets/sos_status_card.dart';
+import 'package:click_sos/core/services/location_service.dart';
+import 'package:click_sos/data/models/contact.dart';
+import 'package:click_sos/data/models/sos_alert.dart';
+import 'package:click_sos/features/profile/privacy_screen.dart';
+import 'package:click_sos/features/sos/sos_controller.dart';
+import 'package:click_sos/features/sos/sos_screen.dart';
+import 'package:click_sos/features/sos/widgets/sos_status_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

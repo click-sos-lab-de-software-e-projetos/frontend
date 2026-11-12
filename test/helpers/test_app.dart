@@ -1,15 +1,15 @@
-import 'package:alerta_seguro/app/app.dart';
-import 'package:alerta_seguro/app/dependencies.dart';
-import 'package:alerta_seguro/core/network/session.dart';
-import 'package:alerta_seguro/core/services/location_service.dart';
-import 'package:alerta_seguro/core/services/whatsapp_service.dart';
-import 'package:alerta_seguro/data/fakes/demo_seed.dart';
-import 'package:alerta_seguro/data/models/contact.dart';
-import 'package:alerta_seguro/data/repositories/alert_repository.dart';
-import 'package:alerta_seguro/data/repositories/auth_repository.dart';
-import 'package:alerta_seguro/data/repositories/contact_repository.dart';
-import 'package:alerta_seguro/data/repositories/region_repository.dart';
-import 'package:alerta_seguro/data/repositories/repositories.dart';
+import 'package:click_sos/app/app.dart';
+import 'package:click_sos/app/dependencies.dart';
+import 'package:click_sos/core/network/session.dart';
+import 'package:click_sos/core/services/location_service.dart';
+import 'package:click_sos/core/services/whatsapp_service.dart';
+import 'package:click_sos/data/fakes/demo_seed.dart';
+import 'package:click_sos/data/models/contact.dart';
+import 'package:click_sos/data/repositories/alert_repository.dart';
+import 'package:click_sos/data/repositories/auth_repository.dart';
+import 'package:click_sos/data/repositories/contact_repository.dart';
+import 'package:click_sos/data/repositories/region_repository.dart';
+import 'package:click_sos/data/repositories/repositories.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

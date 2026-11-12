@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart' as fm;
+import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 
 import '../../app/theme.dart';
 import '../../core/services/geo_point.dart';
-import '../../data/models/community_alert.dart';
-import '../../data/models/risk_region.dart';
 import '../../shared/widgets/app_card.dart';
 import '../auth/auth_controller.dart';
 import '../auth/login_screen.dart';
@@ -29,20 +28,8 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
-  GoogleMapController? _map;
-  GeoPoint? _camera;
-  Map<AlertCategory, BitmapDescriptor> _icons = const {};
-  List<RiskRegion>? _heatRegions;
-  late TileOverlay _heat;
-
-  /// Same overlay while the regions don't change, so tiles are not repainted on every build.
-  TileOverlay _heatFor(List<RiskRegion> regions) {
-    if (!identical(regions, _heatRegions)) {
-      _heatRegions = regions;
-      _heat = riskHeatOverlay(regions);
-    }
-    return _heat;
-  }
+  final _map = fm.MapController();
+  bool _mapReady = false;
 
   @override
   void initState() {
@@ -50,21 +37,11 @@ class _MapScreenState extends State<MapScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _init());
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_icons.isEmpty) {
-      loadAlertIcons(MediaQuery.devicePixelRatioOf(context)).then((icons) {
-        if (mounted) setState(() => _icons = icons);
-      });
-    }
-  }
-
   Future<void> _init() async {
     final controller = context.read<MapController>();
     await controller.init();
     if (!mounted) return;
-    await _map?.animateCamera(CameraUpdate.newLatLng(_latLng(controller.center)));
+    if (_mapReady) _map.move(_latLng(controller.center), _map.camera.zoom);
   }
 
   Future<void> _createAlert() async {
@@ -91,7 +68,7 @@ class _MapScreenState extends State<MapScreen> {
 
   @override
   void dispose() {
-    _map?.dispose();
+    _map.dispose();
     super.dispose();
   }
 
@@ -103,20 +80,43 @@ class _MapScreenState extends State<MapScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          GoogleMap(
-            initialCameraPosition: CameraPosition(target: _latLng(map.center), zoom: 12),
-            myLocationEnabled: map.locationAllowed,
-            myLocationButtonEnabled: false,
-            zoomControlsEnabled: false,
-            tileOverlays: {_heatFor(map.regions)},
-            markers: buildAlertMarkers(map.alerts, _icons, onTap: map.selectAlert),
-            onTap: (p) => map.selectAt((lat: p.latitude, lng: p.longitude)),
-            onCameraMove: (p) => _camera = (lat: p.target.latitude, lng: p.target.longitude),
-            onCameraIdle: () {
-              final camera = _camera;
-              if (camera != null) map.cameraIdle(camera);
-            },
-            onMapCreated: (c) => _map = c,
+          fm.FlutterMap(
+            mapController: _map,
+            options: fm.MapOptions(
+              initialCenter: _latLng(map.center),
+              initialZoom: 12,
+              interactionOptions: const fm.InteractionOptions(
+                flags: fm.InteractiveFlag.all & ~fm.InteractiveFlag.rotate,
+              ),
+              onMapReady: () => _mapReady = true,
+              onTap: (_, p) => map.selectAt((lat: p.latitude, lng: p.longitude)),
+              onPositionChanged: (camera, _) =>
+                  map.cameraIdle((lat: camera.center.latitude, lng: camera.center.longitude)),
+            ),
+            children: [
+              fm.TileLayer(
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'com.clicksos.app',
+              ),
+              riskHeatLayer(map.regions),
+              if (map.myPosition case final me?)
+                fm.MarkerLayer(
+                  markers: [
+                    fm.Marker(
+                      key: const ValueKey('minha-posicao'),
+                      point: _latLng(me),
+                      width: 20,
+                      height: 20,
+                      child: const IgnorePointer(child: _MyLocationDot()),
+                    ),
+                  ],
+                ),
+              fm.MarkerLayer(markers: buildAlertMarkers(map.alerts, onTap: map.selectAlert)),
+              const fm.SimpleAttributionWidget(
+                source: Text('OpenStreetMap'),
+                alignment: Alignment.bottomLeft,
+              ),
+            ],
           ),
           SafeArea(
             child: Padding(
@@ -166,6 +166,20 @@ class _MapScreenState extends State<MapScreen> {
       ),
     );
   }
+}
+
+class _MyLocationDot extends StatelessWidget {
+  const _MyLocationDot();
+
+  @override
+  Widget build(BuildContext context) => Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF2563EB),
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 3),
+          boxShadow: const [BoxShadow(color: Color(0x55000000), blurRadius: 4)],
+        ),
+      );
 }
 
 class _Notice extends StatelessWidget {

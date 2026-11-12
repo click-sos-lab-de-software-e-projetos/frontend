@@ -1,5 +1,5 @@
-import 'package:alerta_seguro/core/network/session.dart';
-import 'package:alerta_seguro/core/network/token_store.dart';
+import 'package:click_sos/core/network/session.dart';
+import 'package:click_sos/core/network/token_store.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

@@ -1,8 +1,8 @@
-import 'package:alerta_seguro/features/auth/auth_controller.dart';
-import 'package:alerta_seguro/features/auth/login_screen.dart';
-import 'package:alerta_seguro/features/auth/register_screen.dart';
-import 'package:alerta_seguro/features/profile/profile_controller.dart';
-import 'package:alerta_seguro/shared/widgets/outline_action_button.dart';
+import 'package:click_sos/features/auth/auth_controller.dart';
+import 'package:click_sos/features/auth/login_screen.dart';
+import 'package:click_sos/features/auth/register_screen.dart';
+import 'package:click_sos/features/profile/profile_controller.dart';
+import 'package:click_sos/shared/widgets/outline_action_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';

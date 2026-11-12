@@ -1,4 +1,4 @@
-import 'package:alerta_seguro/features/sos/widgets/sos_button.dart';
+import 'package:click_sos/features/sos/widgets/sos_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

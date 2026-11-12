@@ -1,7 +1,7 @@
-import 'package:alerta_seguro/data/models/community_alert.dart';
-import 'package:alerta_seguro/data/repositories/region_repository.dart';
-import 'package:alerta_seguro/data/repositories/repository_exception.dart';
-import 'package:alerta_seguro/features/map/widgets/alert_sheet.dart';
+import 'package:click_sos/data/models/community_alert.dart';
+import 'package:click_sos/data/repositories/region_repository.dart';
+import 'package:click_sos/data/repositories/repository_exception.dart';
+import 'package:click_sos/features/map/widgets/alert_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

@@ -1,9 +1,10 @@
 import 'dart:async';
 import 'dart:math';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_map/flutter_map.dart';
 
 import '../../../data/models/risk_region.dart';
 
@@ -22,25 +23,23 @@ const _extraAlpha = 70;
 
 /// Draws the districts as a heat map in map tiles.
 ///
-/// Google's heatmap layer is gone from the Maps JavaScript API, so the heat is
-/// painted here: each pixel mixes the scores of the nearby districts, weighted by
-/// a smooth falloff in meters, and gets more opaque the higher the risk.
-TileOverlay riskHeatOverlay(List<RiskRegion> regions) => TileOverlay(
-      tileOverlayId: TileOverlayId('risco-${Object.hashAll(regions.map((r) => (r.id, r.score, r.radiusMeters)))}'),
+/// The heat is painted here: each pixel mixes the scores of the nearby districts,
+/// weighted by a smooth falloff in meters, and gets more opaque the higher the risk.
+/// The key changes with the regions, so the layer repaints only when they change.
+TileLayer riskHeatLayer(List<RiskRegion> regions) => TileLayer(
+      key: ValueKey('risco-${Object.hashAll(regions.map((r) => (r.id, r.score, r.radiusMeters)))}'),
       tileProvider: RiskHeatTiles(regions),
-      fadeIn: false,
+      tileDisplay: const TileDisplay.instantaneous(),
     );
 
-class RiskHeatTiles implements TileProvider {
+class RiskHeatTiles extends TileProvider {
   RiskHeatTiles(this.regions);
 
   final List<RiskRegion> regions;
 
   @override
-  Future<Tile> getTile(int x, int y, int? zoom) async {
-    final pixels = heatPixels(regions, x, y, zoom ?? 0);
-    return pixels == null ? TileProvider.noTile : Tile(_tileSize, _tileSize, await _png(pixels));
-  }
+  ImageProvider getImage(TileCoordinates coordinates, TileLayer options) =>
+      _HeatTile(regions, coordinates.x, coordinates.y, coordinates.z);
 
   /// RGBA pixels of tile ([x], [y], [zoom]), or null when no district reaches it.
   static Uint8List? heatPixels(List<RiskRegion> regions, int x, int y, int zoom) {
@@ -104,13 +103,39 @@ class RiskHeatTiles implements TileProvider {
     int mix(int p, int q) => (p + (q - p) * f).round();
     return (mix(a.$1, b.$1), mix(a.$2, b.$2), mix(a.$3, b.$3));
   }
+}
 
-  static Future<Uint8List> _png(Uint8List rgba) async {
-    final done = Completer<ui.Image>();
-    ui.decodeImageFromPixels(rgba, _tileSize, _tileSize, ui.PixelFormat.rgba8888, done.complete);
-    final image = await done.future;
-    final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
-    image.dispose();
-    return bytes!.buffer.asUint8List();
+class _HeatTile extends ImageProvider<_HeatTile> {
+  const _HeatTile(this.regions, this.x, this.y, this.zoom);
+
+  final List<RiskRegion> regions;
+  final int x;
+  final int y;
+  final int zoom;
+
+  @override
+  Future<_HeatTile> obtainKey(ImageConfiguration configuration) => SynchronousFuture(this);
+
+  @override
+  ImageStreamCompleter loadImage(_HeatTile key, ImageDecoderCallback decode) => OneFrameImageStreamCompleter(_load());
+
+  Future<ImageInfo> _load() {
+    final pixels = RiskHeatTiles.heatPixels(regions, x, y, zoom) ?? Uint8List(_tileSize * _tileSize * 4);
+    final done = Completer<ImageInfo>();
+    ui.decodeImageFromPixels(
+      pixels,
+      _tileSize,
+      _tileSize,
+      ui.PixelFormat.rgba8888,
+      (image) => done.complete(ImageInfo(image: image)),
+    );
+    return done.future;
   }
+
+  @override
+  bool operator ==(Object other) =>
+      other is _HeatTile && identical(other.regions, regions) && other.x == x && other.y == y && other.zoom == zoom;
+
+  @override
+  int get hashCode => Object.hash(identityHashCode(regions), x, y, zoom);
 }

@@ -1,8 +1,8 @@
-import 'package:alerta_seguro/core/network/session.dart';
-import 'package:alerta_seguro/data/models/contact.dart';
-import 'package:alerta_seguro/data/repositories/contact_repository.dart';
-import 'package:alerta_seguro/data/repositories/repository_exception.dart';
-import 'package:alerta_seguro/features/contacts/contacts_controller.dart';
+import 'package:click_sos/core/network/session.dart';
+import 'package:click_sos/data/models/contact.dart';
+import 'package:click_sos/data/repositories/contact_repository.dart';
+import 'package:click_sos/data/repositories/repository_exception.dart';
+import 'package:click_sos/features/contacts/contacts_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _Spy extends FakeContactRepository {

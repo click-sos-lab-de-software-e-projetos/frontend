@@ -33,6 +33,7 @@ class MapController extends ChangeNotifier {
   GeoPoint _center = defaultCenter;
   GeoPoint? _lastQuery;
   bool _locationAllowed = false;
+  GeoPoint? _myPosition;
   List<RiskRegion> _list = const [];
   bool _loading = false;
   String? _error;
@@ -44,6 +45,9 @@ class MapController extends ChangeNotifier {
 
   GeoPoint get center => _center;
   bool get locationAllowed => _locationAllowed;
+
+  /// Last known user position, shown as a dot; null without permission.
+  GeoPoint? get myPosition => _locationAllowed ? _myPosition : null;
   List<RiskRegion> get regions => _list;
   List<CommunityAlert> get alerts => _alerts;
   bool get loading => _loading;
@@ -66,7 +70,10 @@ class MapController extends ChangeNotifier {
   /// Centers on the user only if permission was already given; the map never asks for it (MAPM-03).
   Future<void> init() async {
     _locationAllowed = await _location.checkAccess() == LocationAccess.granted;
-    if (_locationAllowed) _center = await _location.currentPosition() ?? _center;
+    if (_locationAllowed) {
+      _myPosition = await _location.currentPosition();
+      _center = _myPosition ?? _center;
+    }
     notifyListeners();
     await _load(_center);
   }
@@ -117,11 +124,11 @@ class MapController extends ChangeNotifier {
     var access = await _location.checkAccess();
     if (access == LocationAccess.canAsk) access = await _location.requestAccess();
     if (access != LocationAccess.granted) return null;
-    if (!_locationAllowed) {
-      _locationAllowed = true;
-      notifyListeners();
-    }
-    return _location.currentPosition();
+    _locationAllowed = true;
+    final position = await _location.currentPosition();
+    _myPosition = position ?? _myPosition;
+    notifyListeners();
+    return position;
   }
 
   /// Shows an alert just created, without waiting for the next load.

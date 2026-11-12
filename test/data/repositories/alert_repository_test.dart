@@ -1,6 +1,6 @@
-import 'package:alerta_seguro/data/models/sos_alert.dart';
-import 'package:alerta_seguro/data/repositories/alert_repository.dart';
-import 'package:alerta_seguro/data/repositories/repository_exception.dart';
+import 'package:click_sos/data/models/sos_alert.dart';
+import 'package:click_sos/data/repositories/alert_repository.dart';
+import 'package:click_sos/data/repositories/repository_exception.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/stub_dio_adapter.dart';

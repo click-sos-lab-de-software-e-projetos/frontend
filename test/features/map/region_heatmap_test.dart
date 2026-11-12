@@ -1,8 +1,8 @@
 import 'dart:math';
 import 'dart:ui';
 
-import 'package:alerta_seguro/data/models/risk_region.dart';
-import 'package:alerta_seguro/features/map/widgets/region_heatmap.dart';
+import 'package:click_sos/data/models/risk_region.dart';
+import 'package:click_sos/features/map/widgets/region_heatmap.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 RiskRegion _region(int score, {double lng = -46.6333}) => RiskRegion(
@@ -48,10 +48,10 @@ void main() {
     expect(RiskHeatTiles.heatPixels([_region(100)], tx + 20, ty, _zoom), isNull);
   });
 
-  test('the overlay id changes only when the districts change', () {
+  test('the layer key changes only when the districts change', () {
     final a = [_region(10), _region(90, lng: -46.6)];
 
-    expect(riskHeatOverlay(a).tileOverlayId, riskHeatOverlay([...a]).tileOverlayId);
-    expect(riskHeatOverlay(a).tileOverlayId, isNot(riskHeatOverlay([_region(10)]).tileOverlayId));
+    expect(riskHeatLayer(a).key, riskHeatLayer([...a]).key);
+    expect(riskHeatLayer(a).key, isNot(riskHeatLayer([_region(10)]).key));
   });
 }

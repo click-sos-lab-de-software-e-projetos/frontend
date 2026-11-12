@@ -1,6 +1,6 @@
-import 'package:alerta_seguro/data/repositories/auth_repository.dart';
-import 'package:alerta_seguro/features/profile/change_password_screen.dart';
-import 'package:alerta_seguro/features/profile/edit_profile_screen.dart';
+import 'package:click_sos/data/repositories/auth_repository.dart';
+import 'package:click_sos/features/profile/change_password_screen.dart';
+import 'package:click_sos/features/profile/edit_profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

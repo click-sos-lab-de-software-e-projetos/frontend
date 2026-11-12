@@ -1,5 +1,5 @@
-import 'package:alerta_seguro/data/models/sos_settings.dart';
-import 'package:alerta_seguro/features/settings/sos_settings_controller.dart';
+import 'package:click_sos/data/models/sos_settings.dart';
+import 'package:click_sos/features/settings/sos_settings_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

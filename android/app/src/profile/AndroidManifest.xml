@@ -5,13 +5,9 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
 
     <application
-        android:label="alerta_seguro"
+        android:label="Click S.O.S"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
-
-        <meta-data
-            android:name="AIzaSyDdPF1D7FsCEUtuBCF0gstSuStQZBwOYTw"
-            android:value="AIzaSyDdPF1D7FsCEUtuBCF0gstSuStQZBwOYTw"/>
 
         <activity
             android:name=".MainActivity"

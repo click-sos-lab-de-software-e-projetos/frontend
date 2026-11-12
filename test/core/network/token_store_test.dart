@@ -1,4 +1,4 @@
-import 'package:alerta_seguro/core/network/token_store.dart';
+import 'package:click_sos/core/network/token_store.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 

@@ -64,7 +64,7 @@ class AlertaApp extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
-        title: 'Alerta Seguro',
+        title: 'Click S.O.S',
         debugShowCheckedModeBanner: false,
         theme: buildAppTheme(),
         home: home,

@@ -1,4 +1,4 @@
-import 'package:alerta_seguro/core/utils/phone.dart';
+import 'package:click_sos/core/utils/phone.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

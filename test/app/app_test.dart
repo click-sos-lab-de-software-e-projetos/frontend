@@ -1,4 +1,4 @@
-import 'package:alerta_seguro/data/repositories/auth_repository.dart';
+import 'package:click_sos/data/repositories/auth_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers/test_app.dart';

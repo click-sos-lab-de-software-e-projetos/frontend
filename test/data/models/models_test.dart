@@ -1,11 +1,11 @@
 import 'dart:ui';
 
-import 'package:alerta_seguro/data/models/community_alert.dart';
-import 'package:alerta_seguro/data/models/contact.dart';
-import 'package:alerta_seguro/data/models/risk_region.dart';
-import 'package:alerta_seguro/data/models/sos_alert.dart';
-import 'package:alerta_seguro/data/models/sos_settings.dart';
-import 'package:alerta_seguro/data/models/user_profile.dart';
+import 'package:click_sos/data/models/community_alert.dart';
+import 'package:click_sos/data/models/contact.dart';
+import 'package:click_sos/data/models/risk_region.dart';
+import 'package:click_sos/data/models/sos_alert.dart';
+import 'package:click_sos/data/models/sos_settings.dart';
+import 'package:click_sos/data/models/user_profile.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

@@ -1,4 +1,4 @@
-# Alerta Seguro — Frontend (Flutter)
+# Click S.O.S — Frontend (Flutter)
 
 Aplicativo mobile de segurança colaborativa: **mapa de risco** por distrito
 (dados criminais da SSP-SP) com alertas da comunidade + **botão SOS** que envia sua localização para
@@ -25,7 +25,7 @@ contatos de confiança via WhatsApp.
 ## Stack
 
 - Flutter (Dart `>=3.3.0 <4.0.0`), Material 3, tema escuro
-- [`google_maps_flutter`](https://pub.dev/packages/google_maps_flutter) — mapa
+- [`flutter_map`](https://pub.dev/packages/flutter_map) + [`latlong2`](https://pub.dev/packages/latlong2) — mapa com tiles do OpenStreetMap (sem chave de API)
 - [`geolocator`](https://pub.dev/packages/geolocator) — localização
 - [`dio`](https://pub.dev/packages/dio) — cliente HTTP
 - [`provider`](https://pub.dev/packages/provider) — injeção de dependências e estado (`ChangeNotifier`)
@@ -36,7 +36,6 @@ contatos de confiança via WhatsApp.
 
 - [Flutter SDK](https://docs.flutter.dev/get-started/install) (`flutter doctor` sem erros)
 - Android Studio (emulador), Xcode (iOS) **ou** Google Chrome (web)
-- Uma chave da **Google Maps API** (Maps SDK for Android / iOS e, para web, Maps JavaScript API)
 
 ## Como rodar
 
@@ -81,33 +80,13 @@ flutter run -d chrome          # roda no navegador (não precisa de Android SDK/
 Com o app rodando, use **`r`** para *hot reload*, **`R`** para *hot restart* e
 **`q`** para encerrar.
 
-> **Web:** para o mapa aparecer no navegador, carregue a API JavaScript do Google
-> Maps em `web/index.html`, dentro do `<head>`:
-> `<script src="https://maps.googleapis.com/maps/api/js?key=SUA_CHAVE"></script>`.
-> Sem isso, a aba **Mapa** mostra um erro (`Cannot read properties of undefined
-> (reading 'maps')`), mas as demais telas funcionam.
+### Mapa
 
-### Chave do Google Maps
-
-As permissões de localização/internet e o bloco `<queries>` do WhatsApp já estão
-configurados. Falta apenas informar **localmente** a sua chave do Maps:
-
-**Android** — em `android/local.properties` (arquivo ignorado pelo git):
-
-```properties
-MAPS_API_KEY=SUA_CHAVE
-```
-
-**iOS** — crie `ios/Flutter/Secrets.xcconfig` (ignorado pelo git):
-
-```
-MAPS_API_KEY=SUA_CHAVE
-```
-
-> ⚠️ Nunca faça commit da sua chave do Google Maps.
-
-> **MAPM-01:** no Google Cloud, restrinja a chave ao app (pacote + SHA-1 no
-> Android, bundle id no iOS, domínio na web) e só às APIs do Maps que o app usa.
+O mapa usa os tiles públicos do [OpenStreetMap](https://www.openstreetmap.org/copyright)
+pelo `flutter_map`, então não precisa de chave de API nem de conta no Google Cloud.
+Os servidores do OSM são para uso leve (veja a
+[política de uso](https://operations.osmfoundation.org/policies/tiles/)); para muitos
+usuários, troque o `urlTemplate` em `lib/features/map/map_screen.dart` por um provedor de tiles.
 
 ### Backend
 
@@ -158,7 +137,7 @@ O que já usa a API:
 - S.O.S: um toque inicia uma contagem de 5 s com "Cancelar"; depois o app lê a localização e cria o alerta sem `mensagem` — o backend usa a mensagem salva em Ajustes ou a padrão. O status é consultado a cada 3 s (até 2 min) e o painel mostra enviando, enviado, erro ou "ainda enviando".
 - Antes do primeiro pedido de localização o app explica o motivo. Com permissão negada ou GPS desligado, oferece abrir as configurações ou enviar só pelo WhatsApp (sem link). O WhatsApp (`wa.me`) também fica como opção secundária no painel de status.
 - O backend exige ao menos um contato ativo **com consentimento**; sem isso, a mensagem de erro da API é exibida.
-- Mapa: mapa de calor desenhado em tiles (`widgets/region_heatmap.dart`; a camada de heatmap do Google Maps JS foi descontinuada). Cada distrito espalha calor a partir do centro e do raio da API; a cor vai de verde a vermelho pelo score e vizinhos se misturam. Sem legenda. Tocar dentro de um distrito mostra nome, score e faixa (Baixo < 34, Médio 34–66, Alto ≥ 67). A rota é pública, então o mapa aparece mesmo deslogado; só criar alerta exige login (deslogado, abre o Login). Ao parar de mover a câmera, recarrega se o centro andou mais de 2 km.
+- Mapa: mapa de calor desenhado em tiles (`widgets/region_heatmap.dart`, uma camada de tiles do `flutter_map`). Cada distrito espalha calor a partir do centro e do raio da API; a cor vai de verde a vermelho pelo score e vizinhos se misturam. Sem legenda. Tocar dentro de um distrito mostra nome, score e faixa (Baixo < 34, Médio 34–66, Alto ≥ 67). A rota é pública, então o mapa aparece mesmo deslogado; só criar alerta exige login (deslogado, abre o Login). Ao parar de mover a câmera, recarrega se o centro andou mais de 2 km.
 - O mapa nunca pede permissão de localização (MAPM-03): usa a posição só se ela já foi liberada (ex.: pelo S.O.S); senão centraliza na Praça da Sé.
 - Alertas da comunidade (MAP-04, estilo Waze): o botão vermelho no canto inferior direito cria um alerta na localização atual (pede a permissão se ainda der). A folha tem a categoria (Iluminação, Assalto, Assédio, Pouco movimento, Falta de policiamento, Outro) e um texto opcional de até 500 caracteres (obrigatório em "Outro"). Os alertas das últimas 24 horas aparecem como ícones da categoria no mapa; tocar mostra categoria, texto e há quanto tempo. Ninguém vê quem criou, e os alertas não mudam o calor do mapa.
 - Privacidade (Regra 08): "Privacidade e dados" no Perfil (também deslogado) explica o que é guardado, a retenção de 180 dias e a anonimização; o diálogo "Por que a localização?" do S.O.S leva a essa tela. Logado, "Excluir conta" pede duas confirmações (aviso + senha); depois a sessão é encerrada, o token apagado e o Login abre com "Conta excluída.".
@@ -212,4 +191,4 @@ plans/                        # planos de implementação/refatoração
 
 ## Aviso
 
-O Alerta Seguro **não substitui a polícia**. Em emergências, ligue **190**.
+O Click S.O.S **não substitui a polícia**. Em emergências, ligue **190**.
